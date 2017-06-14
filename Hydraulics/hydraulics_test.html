@@ -1,0 +1,191 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Noetica Hydraulics Test</title>
+  <meta name="description" content="Noetica Hydraulics Test">
+
+  <!--
+  <link rel="stylesheet" href="css/styles.css">
+  ->
+
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+  <!--[endif]-->
+</head>
+
+<body>
+  <h1>Noetica Hydraulics Test Page </h1>
+  <h2>Current Values</h2>
+  <div id="x">unknown</div>&nbsp;&nbsp;&nbsp;<div id="y">unknown</div>&nbsp;&nbsp;&nbsp;<div id="z">unknown</div></div>
+  <br>
+  <br>
+  <h2>Hydraulics Driver State</h2>
+  <select id="driverState"></select>
+  <br>
+  <br>
+  <h2>Current Playbacks</h2>
+  <select id="playbackSelect"></select>
+  <br>
+  <br>
+  <h2>Record Playback</h2>
+  <button type="button" id="record">Record</button>
+</body>
+</html>
+
+<script type="text/javascript" src="jquery-1.4.3.min.js"></script>
+
+<script type="text/javascript">
+
+console.log("TESTING TESTING");
+
+function getValues(){
+    $.ajax({
+        type: 'GET',
+        url:"/hydraulics",
+        success: function(data, status, req) {
+            console.log(data);
+            $("#x").html(data["x"]);
+            $("#y").html(data["y"]);
+            $("#z").html(data["z"]);
+            
+            var select = $("select#driverState")
+            select.html("");
+
+            for (option in data["states"]){
+                val = data["states"][option]
+                select.append($("<option>")
+                    .val(val)
+                    .html(val));
+            }
+            select.val(data["currentState"]);
+            
+            var select = $("select#playbackSelect")
+            select.html("");
+            for (option in data["playbacks"]){
+                val = data["playbacks"][option]
+                select.append($("<option>")
+                    .val(val)
+                    .html(val));
+            }
+            select.val(data["currentPlayback"]);
+            
+            if (data["isRecording"] == true) {
+                $("#record").html == "Stop Recording";
+            } else {
+                $("#record").html == "Record";
+            }
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error getting values");
+        }
+    });
+}
+
+function getPosition() {
+    $.ajax({
+        type: 'GET',
+        url: "/hydraulics/position",  // XXX don't have this function yet!!!
+        success: function(data, status, req) {
+            console.log(data);
+            $("#x").html(data["x"]);
+            $("#y").html(data["y"]);
+            $("#z").html(data["z"]);
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error getting positions");
+        }
+    });
+}
+
+
+function setDriverState(state) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"state":state},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting driver state");
+        }
+    });
+}
+
+
+function setCurrentPlayback(playback) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"currentPlayback":playback},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting current playback");
+        }
+    });
+}
+
+
+function recordPlayback() {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"record":true},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error recording playback");
+        }
+    });
+}
+
+function stopRecording() {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"record":false},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error stopping playback record");
+        }
+    });
+}
+
+
+$(document).ready(function() {
+    console.log("READY called");
+    getValues();
+    $("#driverState").change(function(){
+        // XXX - need to write this!!!
+    });
+    $("#playbackSelect").change(function(){
+        // XXX - need to write this!
+    });
+
+    $("#record").click(function(){
+        if ($("#record").html() == "Record"){
+            $("#record").html("Stop Recording");
+            recordPlayback();
+        } else {
+            $("#record").html("Record");
+            stopRecording()
+        }
+    })
+    /*
+    var timer = setInterval(function() {
+        getPosition();
+    }, 100);
+    */
+
+});
+
+</script>
+
