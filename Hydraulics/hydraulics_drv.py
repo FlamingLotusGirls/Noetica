@@ -3,9 +3,9 @@
 # Based sample code provided by WidgetLords for their raspberry pi 4-20mA analog 
 # read/write boards. Use SPI interface for communication ("Pi-SPI")
 
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import time
-#import spidev
+import spidev
 import sys
 import hydraulics_playback
 from threading import Thread, Lock
@@ -29,11 +29,11 @@ ioThread = None
 def init():
     global ioThread
     spi = None
-    #spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
+    spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
                             # Make Sure SPI is enabled in RPi preferences
 
-    #GPIO.setmode(GPIO.BCM)  # Use RPi GPIO numbers
-    #GPIO.setwarnings(False) # disable warnings
+    GPIO.setmode(GPIO.BCM)  # Use RPi GPIO numbers
+    GPIO.setwarnings(False) # disable warnings
 
     ioThread = four_20mA_IO_Thread(spi)
     ioThread.start()
@@ -88,12 +88,12 @@ class four_20mA_IO_Thread(Thread):
         self.isRecording = False
         self.recordingFile = None
         self.fileMutex = Lock()
-        #GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
-        #GPIO.output(4,1)
-        #GPIO.setup(22,GPIO.OUT)      # Chip Select for the 2nd 2AO Analog Output module
-        #GPIO.output(22,1)
-        #GPIO.setup(7,GPIO.OUT)       # Chip Select for the 8AI Analog Input module
-        #GPIO.output(7,1)
+        GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
+        GPIO.output(4,1)
+        GPIO.setup(22,GPIO.OUT)      # Chip Select for the 2nd 2AO Analog Output module
+        GPIO.output(22,1)
+        GPIO.setup(7,GPIO.OUT)       # Chip Select for the 8AI Analog Input module
+        GPIO.output(7,1)
         
     def stop(self):
         self.running = False
@@ -125,7 +125,7 @@ class four_20mA_IO_Thread(Thread):
     def run(self):
         while (self.running):
             try:
-                #self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
+                self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 ''' Read from inputs '''
                 for index in range(0,4):        # Get mA Reading for Channels 1 thru 4 XXX - need channels 1-6?
                     self.readAdc(index)
@@ -142,7 +142,7 @@ class four_20mA_IO_Thread(Thread):
                     self.writeAnalogOutput(4,  0, x)
                     self.writeAnalogOutput(4,  1, y)
                     self.writeAnalogOutput(22, 0, z)
-                #self.spi.close()
+                self.spi.close()
                 if (self.isRecording):
                     if time.time() >= self.recordingStopTime:
                         self.stopRecording()
@@ -160,7 +160,7 @@ class four_20mA_IO_Thread(Thread):
         if((channel > 7) or (channel < 0)):
             return -1
         adc = [0x00, 0x00, 0x00]
-        #adc = self.spi.xfer(buildReadCommand(channel)) # Chip Select handled automatically by spi.xfer
+        adc = self.spi.xfer(self.buildReadCommand(channel)) # Chip Select handled automatically by spi.xfer
         return self.processAdcValue(adc)   
 
     def processAdcValue(self, result):    # Process two bytes data for 12 bit resolution
@@ -182,9 +182,9 @@ class four_20mA_IO_Thread(Thread):
         output |= dac
         buf_0 = (output >> 8) & 0xff
         buf_1 = output & 0xff
-        #GPIO.output(gpio,0)         # Set Chip Select 2AO LOW
-        #spi.writebytes([buf_0,buf_1]) # write command and data bytes to DAC
-        #GPIO.output(gpio,1)         # Set Ship Select 2AO HIGH
+        GPIO.output(gpio,0)         # Set Chip Select 2AO LOW
+        spi.writebytes([buf_0,buf_1]) # write command and data bytes to DAC
+        GPIO.output(gpio,1)         # Set Ship Select 2AO HIGH
         
 
 
