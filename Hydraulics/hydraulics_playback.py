@@ -10,7 +10,8 @@ import hydraulics_drv
 import time
 
 playbackList = []
-playbackDir = "/home/flaming/Noetica/Hydraulics/playbacks/"
+#playbackDir = "/home/flaming/Noetica/Hydraulics/playbacks/"
+playbackDir = "./"
 playbackData = [] 
 playbackDataIdx = 0
 currentPlayback = None

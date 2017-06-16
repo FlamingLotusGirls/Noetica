@@ -98,6 +98,22 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         hydraulics_drv.startRecording(recordingFile)
                     else:
                         hydraulics_drv.stopRecording()
+                if ("loopback_x" in postvars):
+                    loopback_x = postvars["loopback_x"][0]
+                    x,y,z = hydraulics_drv.getLoopbackValues()
+                    print ("loopback_x set to", loopback_x)
+                    hydraulics_drv.setLoopbackValues(loopback_x, y, z)
+                if ("loopback_y" in postvars):
+                    print postvars
+                    loopback_y = postvars["loopback_y"][0]
+                    print("loopback_y set to", loopback_y)
+                    x,y,z = hydraulics_drv.getLoopbackValues()
+                    hydraulics_drv.setLoopbackValues(x, loopback_y, z)
+                if ("loopback_z" in postvars):
+                    loopback_z = postvars["loopback_z"][0]
+                    print("loopback_z set to", loopback_z);
+                    x,y,z = hydraulics_drv.getLoopbackValues()
+                    hydraulics_drv.setLoopbackValues(x, y, loopback_z)
                 self.send_response(200)
             else:
                 self.sendError(404)
@@ -106,6 +122,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 def getHydraulicsState():
     pos_x, pos_y, pos_z = hydraulics_drv.getCurrentInput()
+    loopback_x, loopback_y, loopback_z = hydraulics_drv.getLoopbackValues()
     
     retObj = {}
     
@@ -117,6 +134,9 @@ def getHydraulicsState():
     retObj["states"]          = hydraulics_drv.getAllStates()
     retObj["currentState"]    = hydraulics_drv.getState()
     retObj["isRecording"]     = hydraulics_drv.isRecording()
+    retObj["loopback_x"]      = loopback_x
+    retObj["loopback_y"]      = loopback_y
+    retObj["loopback_z"]      = loopback_z
     
     return retObj
     

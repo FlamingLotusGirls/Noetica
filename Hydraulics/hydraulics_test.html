@@ -26,6 +26,13 @@
   <select id="driverState"></select>
   <br>
   <br>
+  <h2>Test Output Values (Valid when driver state is Loopback)</h2>
+    x = <input type="number" id="loopback_x" min="0" max="3000">
+    y = <input type="number" id="loopback_y" min="0" max="3000">
+    z = <input type="number" id="loopback_z" min="0" max="3000">
+    <button type="button" id="loopback_button">Set Test Output Values</button>
+  <br>
+  <br>
   <h2>Current Playbacks</h2>
   <select id="playbackSelect"></select>
   <br>
@@ -50,6 +57,11 @@ function getValues(){
             $("#x").html(data["x"]);
             $("#y").html(data["y"]);
             $("#z").html(data["z"]);
+            
+            $("#loopback_x").val(data["loopback_x"]);
+            $("#loopback_y").val(data["loopback_y"]);
+            $("#loopback_z").val(data["loopback_z"]);
+            
             
             var select = $("select#driverState")
             select.html("");
@@ -115,6 +127,20 @@ function setDriverState(state) {
     });
 }
 
+function setLoopbackTestValues(x, y, z) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"loopback_x":x, "loopback_y":y, "loopback_z":z},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting loopback variables");
+        }
+    });
+}
+    
 
 function setCurrentPlayback(playback) {
     $.ajax({
@@ -164,10 +190,10 @@ $(document).ready(function() {
     console.log("READY called");
     getValues();
     $("#driverState").change(function(){
-        // XXX - need to write this!!!
+        setDriverState($("#driverState option:selected").val());
     });
     $("#playbackSelect").change(function(){
-        // XXX - need to write this!
+        setCurrentPlayback($("playbackSelect option:selected").val());
     });
 
     $("#record").click(function(){
@@ -179,11 +205,15 @@ $(document).ready(function() {
             stopRecording()
         }
     })
-    /*
+    
+    $("#loopback_button").click(function(){
+        setLoopbackTestValues($("#loopback_x").val(), $("#loopback_y").val(), $("#loopback_z").val());
+    });
+/*    
     var timer = setInterval(function() {
         getPosition();
-    }, 100);
-    */
+    }, 1000);
+*/
 
 });
 
