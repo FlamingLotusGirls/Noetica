@@ -220,7 +220,7 @@ class four_20mA_IO_Thread(Thread):
         buf_0 = (output >> 8) & 0xff
         buf_1 = output & 0xff
         GPIO.output(gpio,0)         # Set Chip Select 2AO LOW
-        spi.writebytes([buf_0,buf_1]) # write command and data bytes to DAC
+        self.spi.writebytes([buf_0,buf_1]) # write command and data bytes to DAC
         GPIO.output(gpio,1)         # Set Ship Select 2AO HIGH
         
 
