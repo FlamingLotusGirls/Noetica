@@ -83,8 +83,8 @@ def getPlaybackData():
     except IndexError:
         pass
         
-    playbackDataIdx = playbackDataIdx + 1
-    if (len(playbackList) <= playbackDataIdx):
+    playbackDataIdx = playbackDataIdx + 3
+    if (len(playbackData) <= playbackDataIdx):
         playbackDataIdx = 0
         
     return x, y, z
