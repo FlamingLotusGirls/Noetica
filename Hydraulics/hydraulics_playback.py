@@ -11,7 +11,7 @@ import time
 
 playbackList = []
 #playbackDir = "/home/flaming/Noetica/Hydraulics/playbacks/"
-playbackDir = "./playbacks"
+playbackDir = "./playbacks/"
 playbackData = [] 
 playbackDataIdx = 0
 currentPlayback = None
