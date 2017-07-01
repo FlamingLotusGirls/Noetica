@@ -193,7 +193,7 @@ $(document).ready(function() {
         setDriverState($("#driverState option:selected").val());
     });
     $("#playbackSelect").change(function(){
-        setCurrentPlayback($("playbackSelect option:selected").val());
+        setCurrentPlayback($("#playbackSelect option:selected").val());
     });
 
     $("#record").click(function(){
