@@ -60,6 +60,7 @@ def setCurrentPlayback(playbackName):
     ''' Read desired playback into memory, and set up internal cursor to the beginning
     of the playback'''
     global playbackData
+    global currentPlayback
     if not playbackName in playbackList:
         return # XXX throw exception
     with open(playbackDir + playbackName + ".rec") as f:
