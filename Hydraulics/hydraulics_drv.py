@@ -185,7 +185,7 @@ class four_20mA_IO_Thread(Thread):
                         self.stopRecording()
                     else:
                         self.fileMutex.acquire()
-                        self.recordingFile.write("%.3f\n%.3f\n%.3f\n" % (adc[0], adc[1], adc[2])) # XXX check this!
+                        self.recordingFile.write("%d\n%d\n%d\n" % (adc[0], adc[1], adc[2])) # XXX check this!
                         self.fileMutex.release()
                 time.sleep(poll_interval)
             except Exception as e:
