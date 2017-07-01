@@ -60,7 +60,7 @@ def setCurrentPlayback(playbackName):
     if not playbackName in playbackList:
         return # XXX throw exception
     with open(playbackDir + playbackName + ".rec") as f:
-        playbackData = map(float, f)
+        playbackData = map(int, f)
     playbackDataIdx = 0
     currentPlayback = playbackName
 
