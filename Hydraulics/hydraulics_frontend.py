@@ -137,6 +137,8 @@ def getHydraulicsState():
     retObj["loopback_x"]      = loopback_x
     retObj["loopback_y"]      = loopback_y
     retObj["loopback_z"]      = loopback_z
+
+    print ( "Adding currentState to the data {} ({})".format(retObj["currentPlayback"],hydraulics_playback.getCurrentPlayback()) )
     
     return retObj
     
