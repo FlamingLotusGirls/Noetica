@@ -84,7 +84,7 @@ def getPlaybackData():
         pass
         
     playbackDataIdx = playbackDataIdx + 1
-    if (len(playbackList) >= playbackDataIdx):
+    if (len(playbackList) <= playbackDataIdx):
         playbackDataIdx = 0
         
     return x, y, z
