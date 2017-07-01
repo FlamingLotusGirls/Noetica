@@ -174,7 +174,6 @@ class four_20mA_IO_Thread(Thread):
                     self.writeAnalogOutput(4,  0, x)
                     self.writeAnalogOutput(4,  1, y)
                     self.writeAnalogOutput(22, 0, z)
-                    print( "attract mode, reading x:{}, y:{}, z:{}".format(x,y,z) )
                 elif (self.state == LOOPBACK):
                     self.writeAnalogOutput(4,  0, test_output_x)
                     self.writeAnalogOutput(4,  1, test_output_y)

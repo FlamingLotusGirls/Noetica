@@ -54,9 +54,6 @@ def renamePlayback(oldName, newName):
         playbackList[i] = newName
     
 def setCurrentPlayback(playbackName):
-
-    print ( "KON :: SetCurrentPlayback: {}".format( playbackName ) )
-
     ''' Read desired playback into memory, and set up internal cursor to the beginning
     of the playback'''
     global playbackData
