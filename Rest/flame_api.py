@@ -1,3 +1,6 @@
+# skeleton for API
+# To run: 'FLASK_APP=flame_api.py flask run'
+
 from flask import Flask
 from flask import request
 app = Flask("flg")
@@ -8,8 +11,10 @@ app = Flask("flg")
 def flame_status():
     if request.method == 'POST':
         control_flame()
+        pass
     else:
         get_status()
+        pass
 
 # GET /flame/poofers/<poofername>. Get status of particular poofer
 # POST /flame/poofers/<poofername> enabled=[true|false]. Set enabled state for individual poofers
@@ -29,3 +34,22 @@ def flame_patterns():
 @app.route("/flame/patterns/{patternName}")
 def flame_pattern():
     set_flame_pattern()
+
+
+def control_flame():
+    return "control_frame"
+
+def get_status():
+    return "get_status"
+
+def set_flame_status():
+    return "set_flame_status"
+
+def get_flame_status():
+    return "get_flame_status"
+
+def get_flame_patterns():
+    return "get_flame_patterns"
+
+def set_flame_pattern():
+    return "set_flame_pattern"
