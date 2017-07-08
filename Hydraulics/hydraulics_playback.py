@@ -20,6 +20,11 @@ def init():
     try: 
         # look at directory containing playback files. Read into an array
         global playbackList
+
+        # if playbacks folder doesn't exist, create one
+        if not os.path.exists(playbackDir):
+            os.makedirs(playbackDir)
+
         playbackList = os.listdir(playbackDir)
         badFiles = []
         for i in range(len(playbackList)):
