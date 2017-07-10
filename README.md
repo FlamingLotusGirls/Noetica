@@ -1,4 +1,4 @@
-# Pulse
+# Noetica
 
 https://www.kickstarter.com/projects/flg/noetica-kinetic-fire-art-for-burning-man-2017
 
