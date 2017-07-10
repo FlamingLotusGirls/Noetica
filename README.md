@@ -20,7 +20,7 @@ git checkout -b feature/your-thing develop
 git push origin feature/your-thing
 ```
 3. Open PR with `develop` as base and `feature/your-thing` as compare
-https://github.com/FlamingLotusGirls/pulse/pulls
+https://github.com/FlamingLotusGirls/Noetica/pulls
 
 **Fixing a bug**
 
