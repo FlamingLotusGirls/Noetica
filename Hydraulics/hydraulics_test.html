@@ -200,7 +200,7 @@ $(document).ready(function() {
         setDriverState($("#driverState option:selected").val());
     });
     $("#playbackSelect").change(function(){
-        setCurrentPlayback($("playbackSelect option:selected").val());
+        setCurrentPlayback($("#playbackSelect option:selected").val());
     });
 
     $("#record").click(function(){
@@ -216,11 +216,10 @@ $(document).ready(function() {
     $("#loopback_button").click(function(){
         setLoopbackTestValues($("#loopback_x").val(), $("#loopback_y").val(), $("#loopback_z").val());
     });
-/*    
+
     var timer = setInterval(function() {
         getPosition();
     }, 1000);
-*/
 
 });
 
