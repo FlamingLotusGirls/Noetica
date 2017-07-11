@@ -17,7 +17,7 @@ else:
 class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def getFile(self, mimeType):
         try:
-            print ("attempting to open", self.path)
+#            print ("attempting to open", self.path)
             f=open("." + self.path, "rb")
             self.send_response(200)
             self.send_header('Content-type', mimeType)
@@ -121,14 +121,19 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.sendError(404)
 
 def getHydraulicsState():
-    pos_x, pos_y, pos_z = hydraulics_drv.getCurrentInput()
+    control_x, control_y, control_z = hydraulics_drv.getCurrentInput()
+    pid_x, pid_y, pid_z = hydraulics_drv.getVoltageInput()
+    
     loopback_x, loopback_y, loopback_z = hydraulics_drv.getLoopbackValues()
     
     retObj = {}
     
-    retObj["x"] = pos_x
-    retObj["y"] = pos_y
-    retObj["z"] = pos_z
+    retObj["x"] = control_x
+    retObj["y"] = control_y
+    retObj["z"] = control_z
+    retObj["pid_x"] = pid_x
+    retObj["pid_y"] = pid_y
+    retObj["pid_z"] = pid_z
     retObj["playbacks"]       = hydraulics_playback.getList()
     retObj["currentPlayback"] = hydraulics_playback.getCurrentPlayback()
     retObj["states"]          = hydraulics_drv.getAllStates()

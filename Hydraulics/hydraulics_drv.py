@@ -4,12 +4,16 @@
 # read/write boards. Use SPI interface for communication ("Pi-SPI")
 
 import RPi.GPIO as GPIO
-import time
 import spidev
+import json
 import sys
-import hydraulics_playback
 from threading import Thread, Lock
+import time
 import traceback
+import logging
+
+import hydraulics_playback
+import hydraulics_stream
 
 adc = [0,0,0,0,0,0,0,0]
 mA  = [0,0,0,0,0,0,0,0]
@@ -21,10 +25,12 @@ Scaler     = 100        # Scaler factor - all reading are * 100
 mASpanAdc  = 3723       # AD Counts to equal 20 mA
 VDCSpanAdc = 4095       # AD Counts to equal 6.6 VDC
 
+
 PASSTHROUGH = 0   # send inputs on to outputs
 ATTRACT     = 1   # send preset recording to outputs
 NO_MOVE     = 2   # just read inputs. Do not attempt to write to outputs
 LOOPBACK    = 3   # send test output to input
+TEST        = 4   # Internal test. Stream recorded data out to flame system
 
 test_output_x = 0  
 test_output_y = 0
@@ -33,9 +39,13 @@ test_output_z = 0
 ioThread = None
 
 poll_interval = 1
+logger = logging.getLogger('hydraulics')
 
-def init():
+def init(interval = 1000):
     global ioThread
+    global poll_interval
+    global logger
+    poll_interval = float(interval)/float(1000)
     spi = None
     spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
                             # Make Sure SPI is enabled in RPi preferences
@@ -47,6 +57,7 @@ def init():
     ioThread.start()
     
 def shutdown():
+    print("Stopping driver thread")
     ioThread.stop()
    
 def setTestOutputs(x, y, z):
@@ -57,9 +68,12 @@ def setTestOutputs(x, y, z):
 def getCurrentInput():
     return adc[0], adc[1], adc[2]     # I don't care about extremely intermittent erroneous values here, so no mutex lock
     
+def getVoltageInput():
+    return VDC[4], VDC[5], VDC[6]
+    
 def setState(state):    
     global ioThread
-    print ("Setting hydraulics driver state to", state)
+    logger.info("Setting hydraulics driver state to {}".format(state))
     if (isinstance(state, basestring)):
         if (state.lower() == "attract"):
             ioThread.setState(ATTRACT)
@@ -69,9 +83,13 @@ def setState(state):
             ioThread.setState(NO_MOVE)
         elif (state.lower() == "loopback"):
             ioThread.setState(LOOPBACK)
+        elif (state.lower() == "test"):
+            ioThread.setState(TEST)
+        else:
+            logger.warn("Attempted to set hydraulics driver to unknown state {}".format(state))
             
 def getAllStates():
-    return ["attract", "passthrough", "nomove", "loopback"]
+    return ["attract", "passthrough", "nomove", "loopback", "test"]
     
 def getState():
     global ioThread
@@ -154,16 +172,41 @@ class four_20mA_IO_Thread(Thread):
         self.recordingFile = None
         self.fileMutex.release()
         
+    def streamPositionData(self, ):
+        if self.state == TEST:
+        else:
+            x = VDC[4]
+            y = VDC[5]
+            z = VDC[6]
+        
+            hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
+        else:
+            hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
+            
+            
+        
     def run(self):
         while (self.running):
             try:
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 ''' Read from inputs '''
-                for index in range(0,4):        # Get mA Reading for Channels 1 thru 4 XXX - need channels 1-6?
+                for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
                     self.readAdc(index)
                     adc[index] = self.readAdc(index)
                     mA[index]  = (adc[index] * mASpan / mASpanAdc) 
 #                    print "Reading %d = %0.2f mA" % (index+1,((float)(mA[index]))/Scaler) #XXX - put this in logs
+                for index in range(4,7):        # Get Voltage reading for channels 5 thru 7
+                    self.readAdc(index)
+                    adc[index] = self.readAdc(index)
+                    VDC[index] = (adc[index] * VDCSpan / VDCSpanAdc ) 
+#                    print "Reading %d = %0.2f VDC" % (index+1,((float)(VDC[index]))/Scaler)
+                ''' send sculpture position information to whoever is listening '''
+                if self.state == TEST:
+                    x,y,z = hydraulics_playback.getPlaybackData()
+                    hydraulics_stream.sendMessage(json.dumps({"x":x], "y":y, "z":z}))
+                else:          
+                    hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
+                # XXX - I need to be able to test this without the outputs hooked up!!!
                 '''  Write to outputs '''
                 if (self.state == PASSTHROUGH): 
                     self.writeAnalogOutput(4,  0, acd[0])
@@ -188,8 +231,8 @@ class four_20mA_IO_Thread(Thread):
                         self.fileMutex.release()
                 time.sleep(poll_interval)
             except Exception as e:
-                print("Error running spi driver", e)
-                traceback.print_exc(file=sys.stdout)
+                logger.exception("Error running spi driver")
+                #traceback.print_exc(file=sys.stdout)
             
 
     def readAdc(self, channel):     # SPI Write and Read transfer for channel no.
@@ -198,7 +241,8 @@ class four_20mA_IO_Thread(Thread):
             return -1
         adc = [0,0,0]
         adc = self.spi.xfer(self.buildReadCommand(channel)) # Chip Select handled automatically by spi.xfer
-        return self.processAdcValue(adc)   
+        return self.processAdcValue(adc) 
+
 
     def processAdcValue(self, result):    # Process two bytes data for 12 bit resolution
         byte2 = (result[1] & 0x0f)

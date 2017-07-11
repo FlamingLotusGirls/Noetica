@@ -20,6 +20,9 @@
   <h1>Noetica Hydraulics Test Page </h1>
   <h2>Current Values</h2>
   <div id="x">unknown</div>&nbsp;&nbsp;&nbsp;<div id="y">unknown</div>&nbsp;&nbsp;&nbsp;<div id="z">unknown</div></div>
+  <br><br>
+  <h2>Voltage Values</h2>
+  <div id="pid_x">unknown</div>&nbsp;&nbsp;&nbsp;<div id="pid_y">unknown</div>&nbsp;&nbsp;&nbsp;<div id="pid_z">unknown</div></div>
   <br>
   <br>
   <h2>Hydraulics Driver State</h2>
@@ -58,6 +61,10 @@ function getValues(){
             $("#y").html(data["y"]);
             $("#z").html(data["z"]);
             
+            $("#pid_x").html(data["pid_x"]);
+            $("#pid_y").html(data["pid_y"]);
+            $("#pid_z").html(data["pid_z"]);
+                     
             $("#loopback_x").val(data["loopback_x"]);
             $("#loopback_y").val(data["loopback_y"]);
             $("#loopback_z").val(data["loopback_z"]);
