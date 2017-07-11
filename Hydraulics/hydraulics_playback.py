@@ -6,8 +6,9 @@
 
 import os
 import datetime
-import hydraulics_drv
 import time
+
+import hydraulics_drv
 
 playbackList = []
 #playbackDir = "/home/flaming/Noetica/Hydraulics/playbacks/"
@@ -16,7 +17,11 @@ playbackData = []
 playbackDataIdx = 0
 currentPlayback = None
 
-def init():
+# XXX - should the playback file specify the interval in which it is expected to run? Probably...
+
+def init(playbackDirectory=playbackDir):
+    global playbackDir
+    playbackDir = playbackDirectory
     try: 
         # look at directory containing playback files. Read into an array
         global playbackList
@@ -38,7 +43,7 @@ def init():
         for fileName in badFiles:
             playbackList.remove(fileName)
         
-        print playbackList
+        #print playbackList
         if len(playbackList) > 0:
             setCurrentPlayback(playbackList[0])
     except Exception as e:
