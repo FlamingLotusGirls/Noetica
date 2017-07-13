@@ -33,7 +33,7 @@ if __name__ == '__main__':
         POSITION_PORT = configParser.get("main", "streamPort", POSITION_PORT)
         HYDRAULICS_POLL_INTERVAL = configParser.get("main", "pollInterval", HYDRAULICS_POLL_INTERVAL)
     except:
-        logging.error("Problem reading config file {}, defaulting configuration".format(configFile)
+        logging.error("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
         # setup driver  - XXX own process?
