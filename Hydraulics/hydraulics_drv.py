@@ -102,6 +102,8 @@ def getState():
         return "nomove"
     elif (intState == LOOPBACK):
         return "loopback"
+    elif (intState == TEST):
+        return "test"
     else:
         return "unknown"
         
@@ -149,7 +151,7 @@ class four_20mA_IO_Thread(Thread):
         self.running = False
         
     def setState(self, state):
-        if (state == PASSTHROUGH or state == ATTRACT or state == NO_MOVE or state == LOOPBACK):
+        if (state == PASSTHROUGH or state == ATTRACT or state == NO_MOVE or state == LOOPBACK or state == TEST):
             self.state = state
             
     def getState(self):
@@ -172,18 +174,6 @@ class four_20mA_IO_Thread(Thread):
         self.recordingFile = None
         self.fileMutex.release()
         
-    def streamPositionData(self, ):
-        if self.state == TEST:
-        else:
-            x = VDC[4]
-            y = VDC[5]
-            z = VDC[6]
-        
-            hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
-        else:
-            hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
-            
-            
         
     def run(self):
         while (self.running):
@@ -203,7 +193,7 @@ class four_20mA_IO_Thread(Thread):
                 ''' send sculpture position information to whoever is listening '''
                 if self.state == TEST:
                     x,y,z = hydraulics_playback.getPlaybackData()
-                    hydraulics_stream.sendMessage(json.dumps({"x":x], "y":y, "z":z}))
+                    hydraulics_stream.sendMessage(json.dumps({"x":x, "y":y, "z":z}))
                 else:          
                     hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
                 # XXX - I need to be able to test this without the outputs hooked up!!!

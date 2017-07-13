@@ -5,19 +5,31 @@ from threading import Thread
 import json
 import logging
 import time
+import socket
+import sys
 
 triggerList = list()
+triggerThread = None
 
 logger = logging.getLogger('triggers')
 
-def init(triggerFile = "./triggers.json", addr, port):
+def init(triggerFile, addr, port):
+    global triggerThread
+    print "INIT"
     try:
         with open(triggerFile) as f:
+            print "opened file", triggerFile
             triggerParams = json.load(f) 
-        triggerThread = TriggerManager(triggerParams, addr, port)
+        print "triggerparams are", triggerParams
+        triggerThread = TriggerManager(addr, port, triggerParams)
         triggerThread.start()
     except:
         logger.exception("Exception initializing triggers!")
+        
+def shutdown():
+    print "Stopping trigger thread"
+    triggerThread.stop()
+    triggerThread.join()
         
 def _verifyTriggerParamsObject(triggerParamsObject):
     # XXX - I'm doing a lot of assignments here, but the point isn't to assign variables,
@@ -53,11 +65,18 @@ class TriggerManager(Thread):
         self.listenPort = listenPort
         self.running    = False
         self.socketInit = False
+        self.hydraulics_socket = None
+        
+        print triggerParams
 
         for triggerParamsObject in triggerParams:
+            print triggerParamsObject
             if _verifyTriggerParamsObject(triggerParamsObject):
-                self.triggerList.append(TriggerObject(triggerParamsObject["name"], 
-                                                      triggerParamsObject["points"]))
+                print "appending trigger object"
+                triggerObject = TriggerObject(triggerParamsObject["name"], 
+                                              triggerParamsObject["points"])
+                self.triggerList.append(triggerObject)
+                triggerObject.enable(True)
                               
 # x = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values())) # XXX this is a way of creating an object with attributes instead of a generic dict, but I don't quite understand how it works yet
                 
@@ -74,34 +93,44 @@ class TriggerManager(Thread):
                 msg = self.hydraulics_socket.recv(32)
                 if len(msg) <= 0:
                     logger.warn("0 bytes received on trigger thread, disconnecting")  
-                    self.hydraulics_socket.shutdown()
+                    #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
                     self.hydraulics_socket.close()
                     self.socketInit = False
                     continue
+                    
+                print 'received message on position socket', msg
                     
                 msgObj = json.loads(msg) # XXX and what happens on exception here?            
                 
                 # got message, hand to objects
                 for trigger in self.triggerList:
+                    print "handing message to trigger"
                     trigger.processSculpturePosition(msgObj)
             except socket.error, (value, message):
                 logger.exception("Socket error {}".format(message))
                 # Attempt reconnect
                 self.socketInit = False
                 if self.hydraulics_socket != None:
-                    self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
+                    #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
                     self.hydraulics_socket.close()
                     self.hydraulics_socket = None
-                time.sleep(0.5)
+                time.sleep(3)
             except:
                 logger.exception("Error processing hydraulics position data")
                 
     def stop(self):
+        print "In manager thread. set running false"
         self.running = False
                 
-    def _connectHydraulicsSocket(self):
-        self.hydraulics_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.hydraulics_socket.connect((addr, port))
+    def _connectHydraulicsSocket(self, addr, port):
+        try:
+            newSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            newSocket.connect((addr, port))
+            self.hydraulics_socket = newSocket
+        except socket.error as e:
+            #logger.exception("Socket error {}".format(message))
+            newSocket.close()
+            raise e
         # NB - these calls are expected to throw if there is a problem
 
 
@@ -117,6 +146,7 @@ LOOKING = "looking"
 ENVELOPE_SIZE = 5
 
 # XXX let's not bother with direction down the envelope right now. Just keep us in the envelope
+# XXX - want a way to disable these guys!
 
 class TriggerObject():
     ''' Object associated with a particular trigger sequence. The trigger manager feeds it
@@ -131,6 +161,16 @@ class TriggerObject():
         self.pointTarget = 0 # target is first point
         self.lastTriggerPointTime = 0
         self.lingerTime = 0  # wall time - linger until this time
+        print "INIT trigger object!!"
+        
+    def enable(self, bEnable):
+        if bEnable:
+            self._restartTrigger()
+        else:
+            self.state = DISABLED
+        
+    def isEnabled(self):
+        return self.state != DISABLED
         
     def _restartTrigger(self):
         self.pointTarget = 0
@@ -142,8 +182,10 @@ class TriggerObject():
         if self.state == DISABLED:
             return
         
-        currentTime = time.now() # or something
+        currentTime = time.time() 
         targetPoint = self.points[self.pointTarget]
+        
+        print "received position data", position
         
         if self.state == LINGERING:
             # check that we have either passed the linger timeout, or are still near the point in question
@@ -171,7 +213,7 @@ class TriggerObject():
                 return
                 
             # now check if we've gotten to the desired point
-            if _inEnvelopeRadius(targetPoint, position):
+            if TriggerObject._inEnvelopeRadius(targetPoint, position):
                 # got there. Change state...
                 if targetPoint["type"] == "linger":
                     self.state == LINGERING
@@ -188,24 +230,26 @@ class TriggerObject():
             # haven't gotten to desired point - are we in the envelope?
             elif self.pointTarget != 0:  # target 0 has no transition envelope, since there was no previous point
                 prevPoint = self.points[self.pointTarget-1]
-                if not _inEnvelopeSausage(prevPoint, targetPoint, position):
+                if not TriggerObject._inEnvelopeSausage(prevPoint, targetPoint, position):
                     self.restartTrigger()
                     return
                
     
+    @staticmethod
     def _inEnvelopeRadius(target, testPoint):
         distanceSquare = (target["x"] - testPoint["x"])^2 + (target["y"] - testPoint["y"])^2 + (target["z"] - testPoint["z"])^2
         return distanceSquare <= ENVELOPE_SIZE^2
         
+    @staticmethod
     def _inEnvelopeSausage(targetA, targetB, testPoint):
         if _inEnvelopeRadius(targetA, testPoint):
             return True
-        if _inEnvelopeRadius(targetB, testPoint):
+        if TriggerObject._inEnvelopeRadius(targetB, testPoint):
             return True
             
         return _distanceToLineSegment(targetA, targetB, testPoint) <= EnvelopeSize
         
-
+    @staticmethod
     def _distanceToLineSegment(targetA, targetB, testPoint): 
         # thanks to quano in StackExchange... XXX - check that this works. And do the math
         
@@ -228,8 +272,21 @@ class TriggerObject():
         z = targetA["z"] + y * dz
     
         return (x - testPoint["x"])^2 + (y - testPoint["y"])^2 + (z - testPoint["z"])^2
-
-
         
+if __name__ == '__main__':  # for testing - this is part of the flame effects process!
+    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(message)s', level=logging.DEBUG)
+    try:            
+        if len(sys.argv) > 1:
+            initFile = sys.argv[1]
+        else:
+            initFile = "./triggers.json"
             
+        init(initFile, "127.0.0.1", 9001)
+        while True:
+            time.sleep(4)
+    except KeyboardInterrupt:
+        print "Ctl-C detected"
+        
+    print "CALLING SHUTDOWN"
+    shutdown() 
         
