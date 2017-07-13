@@ -45,29 +45,33 @@ class HydraulicsConnectionManager(Thread):
             try:
                 # set up socket
                 self.hydraulics_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.hydraulics_socket.bind((socket.gethostname(), self.port))
-                self.hydraulics_socket.settimeout(1)  # XXX REUSE ADDR?
+#                self.hydraulics_socket.bind((socket.gethostname(), self.port))
+                self.hydraulics_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.hydraulics_socket.bind(("localhost", self.port))
+                print "bind to {}:{}".format(socket.gethostname(), self.port)
+                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR?
                 self.hydraulics_socket.listen(5)  # really should only ever be one or two connection requests
 
                 # use socket
                 while self.running:
                     try: 
+                        print "socket accept... waiting"
                         (clientsocket, address) = self.hydraulics_socket.accept() # socket blocks by default
                     except socket.timeout:
                         continue
                         
                     hydraulics_stream_thread = PositionStreamer(clientsocket, self)
-                    hydraulics_stream_thread.start()
                     self.threadLock.acquire()
-                    self.threads = self.threads.append(hydraulics_stream_thread)
+                    self.threads.append(hydraulics_stream_thread)
                     self.threadLock.release()
+                    hydraulics_stream_thread.start()
             
                     # XXX - do I want to use multiprocessing here? Rpis are quad core
                     # do I need the lock if I'm doing multicoring? check all of this
             except Exception as e: 
                 print "exception on streamer", e
                 logger.exception("Error on hydraulics listener socket. Will rebind")
-                self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
+                #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
                 self.hydraulics_socket.close()
                 self.hydraulics_socket = None
                 pass
@@ -83,6 +87,7 @@ class HydraulicsConnectionManager(Thread):
             streamThread.queueMessage(msg)
         
     def releaseChild(self, streamThread):
+        print "CSW - attempting to release streamthread"
         self.threadLock.acquire()
         if streamThread in self.threads:
             self.threads.remove(streamThread)
@@ -90,10 +95,12 @@ class HydraulicsConnectionManager(Thread):
         
 class PositionStreamer(Thread):
     ''' Streams sculpture position information to other side of connection '''
+    MAX_MESSAGE_LEN = 10
+    
     def __init__(self, clientSocket, parentThread):
         Thread.__init__(self)
         self.clientSocket = clientSocket
-        self.messageLock = threading.Lock()
+        self.messageLock = Lock()
         self.messageFifo = list()
         self.parent = parentThread
         
@@ -110,7 +117,7 @@ class PositionStreamer(Thread):
                     sentBytes = 0
                     msgLen = len(msg)
                     while sentBytes < msgLen:
-                        nBytes = self.clientSocket.send(msg[totalsent:])
+                        nBytes = self.clientSocket.send(msg[sentBytes:])
                         if nBytes == 0:
                             raise RuntimeError("0 bytes sent; socket connection broken")
                             self.running = False
@@ -118,13 +125,13 @@ class PositionStreamer(Thread):
                         sentBytes = sentBytes + nBytes  
             except:
                 logger.exception("Error listening for on hydraulics socket, closing socket")
-                self.clientSocket.shutdown(socket.SHUT_RDWR)
+                #self.clientSocket.shutdown(socket.SHUT_RDWR)
                 self.clientSocket.close()
                 self.parent.releaseChild(self)
                 
     def queueMessage(self, message):
         self.messageLock.acquire()
-        if len(messageFifo < self.MAX_MESSAGE_LEN):
+        if len(self.messageFifo) < PositionStreamer.MAX_MESSAGE_LEN:
             self.messageFifo.append(message)
         else:
             logger.warning("Could not queue hydraulics position, too many messages")
@@ -138,7 +145,7 @@ class PositionStreamer(Thread):
 # Add log rotation - https://stackoverflow.com/questions/9106795/python-logging-and-rotating-files
 # And questions about multiprocessing to allow me to use all of the cores
 # And some test code, of course
-# Allow changing of some configuration options from GUI
+# Allow changing of some configuration options from GUI (? What? 
 # test mode?
 # test trigger - single point, multi point linger, multipoint passthrough, failure cases
 # test sample data
