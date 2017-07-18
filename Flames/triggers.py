@@ -1,6 +1,19 @@
 ''' Trigger manager, and trigger objects '''
-from threading import Thread
 
+''' Handles triggering of pre-defined flame effects based on sculpture position. 
+The TriggerManager listens to a socket over which sculpture position data is streamed, and 
+feeds that information to a list of trigger objects. The trigger objects then call the flame
+effects code when the appropriate conditions are met.
+
+Triggers are defined in a json-formatted trigger file read in during initialization. 
+Each individual object within the file has the following format:
+{ "name":<name>, "points":["type":<"passthrough"|"linger">, "x":<x-coord>, "y":<y-coord>
+                           "z":<z-coord>, "transitTime":<max time allowed to get to point
+                                                         from previous point>
+                           "lingerTime":<optional, time to linger if point type is "linger">,
+                           "flameEffect":<optional, flame effect name to trigger>]} '''
+                           
+from threading import Thread
 #from flameEffects import FlameEffects
 import json
 import logging
@@ -13,9 +26,11 @@ triggerThread = None
 
 logger = logging.getLogger('triggers')
 
+
 def init(triggerFile, addr, port):
     global triggerThread
     print "INIT"
+    logger.warning("wtf??")
     try:
         with open(triggerFile) as f:
             print "opened file", triggerFile
@@ -23,17 +38,43 @@ def init(triggerFile, addr, port):
         print "triggerparams are", triggerParams
         triggerThread = TriggerManager(addr, port, triggerParams)
         triggerThread.start()
-    except:
+    except IOError:
         logger.exception("Exception initializing triggers!")
         
 def shutdown():
     print "Stopping trigger thread"
-    triggerThread.stop()
-    triggerThread.join()
+    global triggerThread
+    if triggerThread != None:
+        triggerThread.stop()
+        triggerThread.join()
+    triggerThread = None
+    
+def getTriggers():
+    triggers = triggerThread.getTriggers()
+    newTriggers = list()
+    for trigger in triggers:
+        newTrigger = {"name": trigger.getName(), "enabled": trigger.isEnabled(), 
+                      "active": trigger.isActive()}
+        newTriggers.append(newTrigger)
+    return newTriggers
+    
+def enableTrigger(triggerName):
+    triggers = triggerThread.getTriggers()
+    for trigger in triggers:
+        if trigger.getName() == triggerName:
+            trigger.enable(True)
+            break
+
+def disableTrigger(triggerName):
+    triggers = triggerThread.getTriggers()
+    for trigger in triggers:
+        if trigger.getName() == triggerName:
+            trigger.enable(False)
+            break
         
 def _verifyTriggerParamsObject(triggerParamsObject):
     # XXX - I'm doing a lot of assignments here, but the point isn't to assign variables,
-    # its to test that the structure of the object is correct. There are probably better
+    # it's to test that the structure of the object is correct. There are probably better
     # ways to do this, but for now...
     try:
         name = triggerParamsObject["name"]
@@ -138,9 +179,8 @@ class TriggerManager(Thread):
 
 # states are
 DISABLED = "disabled"
-LINGERING = "lingering"
-LOOKING = "looking"
-
+LINGERING = "lingering" # waiting a while at a particular point
+LOOKING = "looking"     # looking for a particular point
 
 
 ENVELOPE_SIZE = 5
@@ -168,9 +208,15 @@ class TriggerObject():
             self._restartTrigger()
         else:
             self.state = DISABLED
+            
+    def getName(self):
+        return self.name
         
     def isEnabled(self):
         return self.state != DISABLED
+        
+    def isActive(self):
+        return (self.state == LINGERING) or (self.state == LOOKING and self.pointTarget > 0)
         
     def _restartTrigger(self):
         self.pointTarget = 0
