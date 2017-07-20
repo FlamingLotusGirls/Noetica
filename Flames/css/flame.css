@@ -1,0 +1,81 @@
+html {
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  background-color: white;
+}
+body {
+  background-color: white;
+  color: black;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 1em;
+}
+.inverted {
+  filter: invert(85%); /* this should make the background color a dark gray instead of black */
+}
+.center {
+  text-align: center;
+}
+
+.poofer-firing {
+  background-color: #ff9999; /* XXX Replace this with a gif */
+}
+.main-container {
+  display: flex;
+}
+.flame-container {
+  display: flex;
+  width: 60%;
+}
+.hydraulics-container {
+  display: flex;
+  flex-direction: column;
+  width: 40%;
+  border-left: 1px solid black;
+  padding-left: 2em;
+}
+.poofer-display td {
+  text-align: center;
+  width: 2em;
+  height: 2em;
+}
+.poofer-display td, .poofer-selected-display-field {
+  font-variant: small-caps;
+  text-transform: capitalize;
+}
+.poofer {
+  border: 1px solid black;
+}
+.poofer--blank {
+  border: none;
+}
+.poofer-controls-container {
+  margin-left: 2em;
+  display:flex;
+  flex-direction:column;
+}
+.poofer-main-toggle-container {
+  height: 50%;
+}
+.poofer-individual-toggle-container {
+  height: 50%;
+}
+.poofer-individual-toggle-button {
+  width: 5em;
+}
+
+.hydraulics-label {
+  border: 1px solid black;
+  width: 2em;
+}
+.hydraulics-central-controls-container {
+  display:flex;
+  flex-direction:row;
+  align-items: center; /* vertically centers the children */
+}
+.hydraulics-record-toggle-container {
+  margin-bottom: 1em;
+}
+.hydraulics-position-display-container {
+  margin-left: 1em;
+}
