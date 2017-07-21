@@ -1,0 +1,478 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Noetica Hydraulics Test</title>
+  <meta name="description" content="Flame Sequence Creator/Editor">
+
+  <!--
+  <link rel="stylesheet" href="css/styles.css">
+  ->
+
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+  <!--[endif]-->
+</head>
+<style>
+.poofer {background-color:grey; width:20px; height:20px; position:absolute;}
+.poofer.active {background-color:orange;}
+.top-button {font-size:12pt; font-family:sans-serif}
+h1 {font-family:sans-serif}
+
+</style>
+
+
+<body>
+<div style="margin:20px">
+<div>
+    <div style="float:left; width:400px">
+    <h1>Noetica Flame Sequence Creator </h1>
+    </div>
+    <div id="BigNoetica" style="margin-left:400px; position:relative;">
+    </div>
+</div>
+  <!-- Should be able to create new ones, or edit ones that you've already created.-->
+  <div id="topControls" style="width: 100%; overflow: hidden;">
+  <button type="button" id="createSequenceButton">Create New Sequence</button>
+  <button type="button" id="modifySequenceButton">Modify Existing Sequence</button><br>
+  </div>
+  
+  <div id="createSequenceDiv">
+      <span name="sequenceDiv" class="top-button" style="margin-bottom:10px">Sequence Name:&nbsp;<input type="text" length="40" id="sequenceName"></input> <br></span>
+      <select id="sequenceSelect">
+        <option value="none" id="none"></option>
+        <option value="createNew">Create New Sequence...</option>
+      </select>
+      <div name="playDiv" style="margin-top:10px"><button type="button" class="top-button" onclick="playSequence()">Play Sequence</button> &nbsp;
+      <button type="button" id="saveSequenceButton" class="top-button"> Save Sequence </button>&nbsp;
+      <button type="button" id="createEventButton" class="top-button"> Create New Event </button>
+      </div>
+      <div id="EventTemplate" style="display:none; height:160px; border-width:2px; border-style:solid; margin-top:10px; padding:10px" >   
+          <span id="eventId"></span>
+          <div style="width:800px; height:150px; display:table">
+            <div style="display:table-row">
+              <div id="NoeticaContainer" style="position:relative; height:150px; display:table-cell; width:300px">
+              </div>
+              <div style="display:table-cell">
+                  Event Starts... &nbsp;<input id="startDelay" type="number" length = "4" width="40" value="0"/>ms&nbsp;
+                  <select id="eventStart">
+                     <option value="afterPreviousEnd" selected="true">After Previous Event End</option>
+                     <option value="afterPreviousStart">After Previous Event Start</option>
+                     <option value="absoluteTime">After Sequence Start </option>
+                  </select> &nbsp;
+                  <br>
+                  Event Duration: &nbsp; <input id="duration" type="number" length="4" value="1000" maxvalue="5000"/>ms
+                  <div>
+                    <button type="button" class="deleteEventButton">Delete Event</button>
+                    <button type="button" class="insertEventButton">Insert New Event</button>
+                  </div>
+              </div
+            </div>
+          </div>
+      </div>
+  </div>
+  <div id="modifySequenceDiv">
+  </div>
+  </div>
+</body>
+</html>
+
+<script type="text/javascript" src="jquery-1.4.3.min.js"></script>
+
+<script type="text/javascript">
+
+var gSequences = []
+
+console.log("TESTING TESTING");
+$(document).ready(function() {
+    console.log("READY called");
+    $("#modifySequenceButton").hide()
+    $("#createSequenceButton").hide()
+    $("#modifySequenceDiv").hide()
+//    $("#createSequenceDiv").hide()
+
+    insertNoeticaImage($("#BigNoetica"), 25, false);
+    createEvent(null);
+    getSequences();
+//    test1()
+});
+
+
+function insertNoeticaImage(parentDiv, boxWidth, allowClicks) {
+    // add the damn poofers
+    for (i=0; i<7; i++){
+        for (j=0; j<11; j++){
+            var newDiv = $("<div class='poofer'>");
+            newDiv.width(boxWidth-2);
+            newDiv.height(boxWidth-2);
+            if (allowClicks) {
+                newDiv.addClass("pooferActive");
+            }
+            
+            newDiv.css({top: boxWidth*i, left: boxWidth*j});
+            if (i==0 && j==3){
+                newDiv.attr("id", "NN");
+            } else if (i==1) {
+                if (j==2){
+                    newDiv.attr("id", "NW");
+                } else if (j==3){
+                    newDiv.attr("id", "NT");
+                } else if (j==4){
+                    newDiv.attr("id", "NE");
+                }
+            } else if (i==2) {
+                if (j==1) {
+                    newDiv.attr("id", "WN");
+                } else if (j==3){
+                    newDiv.attr("id", "TN");
+                } else if (j==5){
+                    newDiv.attr("id", "EN");
+                } else if (j==9){
+                    newDiv.attr("id", "BN");
+                }
+            } else if (i==3) {
+                if (j==0){
+                    newDiv.attr("id", "WW");
+                } else if (j==1){
+                    newDiv.attr("id", "WT");
+                } else if (j==2){
+                    newDiv.attr("id", "TW");
+                } else if (j==3){
+                    newDiv.attr("id", "TT");
+                } else if (j==4){
+                    newDiv.attr("id", "TE");
+                } else if (j==5){
+                    newDiv.attr("id", "ET");
+                } else if (j==6){
+                    newDiv.attr("id", "EE");
+                } else if (j==8){
+                    newDiv.attr("id", "BW");
+                } else if (j==10){
+                    newDiv.attr("id", "BE");
+                }
+            } else if (i==4) {
+                if (j==1) {
+                    newDiv.attr("id", "WS");
+                } else if (j==3){
+                    newDiv.attr("id", "TS");
+                } else if (j==5){
+                    newDiv.attr("id", "ES");
+                } else if (j==9){
+                    newDiv.attr("id", "BS");
+                }
+            } else if (i==5) {
+                if (j==2){
+                    newDiv.attr("id", "SW");
+                } else if (j==3){
+                    newDiv.attr("id", "ST");
+                } else if (j==4){
+                    newDiv.attr("id", "SE");
+                }
+            } else if (i==6 && j==3){
+                newDiv.attr("id", "SS");
+            }
+            // Only add the ones that have poofers in them
+            if (newDiv.attr("id") != ""){
+                parentDiv.append(newDiv);
+            }
+        }
+    }
+}
+
+$("#createSequenceButton").click(function(){
+    $("#createSequenceDiv").show();
+});
+
+
+
+function createEvent(sibling){
+    // clone, and remove template identification
+    var newEvent = $("#EventTemplate").clone();
+    newEvent.addClass("Event");
+    newEvent.attr("id", "Event");
+    insertNoeticaImage(newEvent.find("#NoeticaContainer"), 22, true);
+    
+    // add to DOM, show
+    var parent
+    if (!sibling) {
+        parent = $("#EventTemplate").parent();
+        parent.append(newEvent);
+    } else {
+        newEvent.insertAfter(sibling);
+    }
+    newEvent.show();
+    return newEvent;
+}
+
+function deleteEvents(){
+    var events = $(".Event");
+    events.remove();
+}
+
+$(".insertEventButton").live('click', function(){
+    var sibling = $(this).parents("#Event");
+    createEvent($(sibling));
+});
+    
+$("#createEventButton").click(function(){
+    createEvent(null);
+});
+
+$(".deleteEventButton").live("click", function(){
+    var thisDelete = $(this);
+    var parentEvent = thisDelete.parents(".Event");
+    parentEvent.remove()
+});
+
+// XXX FIXME - I'm not saving the information in gSequence data. Once you've moved off your 
+// sequence, you're lost.
+// I'm also not honoring the modify attribute
+$("#saveSequenceButton").click(function() {
+    var jsonStr = serializeSequence();
+    $.ajax({
+        type: 'POST',
+        data: {"patternData":jsonStr},
+        url:"http://localhost:5000/flame/patterns",
+        success: function(data, status, req) {
+            console.log("Save sequence success!");
+        }
+    });   
+});
+
+// XXX page reload on post??
+var newSequenceId = 1;
+
+$("#sequenceSelect").live('change', function(){
+    var currentSelection = $(this).val();
+    if (currentSelection == "createNew") {
+        var newSequenceName = "Sequence " + newSequenceId++;
+        var sequence = createEmptySequence(newSequenceName);
+        gSequences.push(sequence);
+        $(this).append($('<option>', { value:newSequenceName, text:newSequenceName }));
+        populateSequence(sequence);
+        $(this).val(newSequenceName);
+        
+        // now hide the 'none' option, if needed
+        hideNone()
+    } else if (currentSelection == "none") {
+        // explicit do nothing... this should only happen if there are no other sequences
+    } else {
+        var selectedSequence = null; 
+        for (var i=0; i<gSequences.length; i++) {
+            var sequence = gSequences[i];
+            if (sequence["name"] == currentSelection) {
+                selectedSequence = sequence;
+                break;
+            }
+        }
+        if (selectedSequence != null) {
+            populateSequence(selectedSequence);
+        } else {
+            console.log("No corresponding sequence for selected name!!!");
+        }
+    }
+});
+
+function createEmptySequence(name){
+    return {"name": name, "events":[], "modifiable":true};
+}
+
+
+$(".pooferActive").live('click', function(){
+    curThis = $(this);
+    if (curThis.hasClass('active')) {
+        curThis.removeClass('active');
+    } else {
+        curThis.addClass('active');
+    }
+});
+
+// hide the blank select option
+function hideNone() {
+    var noneOption = $("#sequenceSelect").find('option[value="none"]');
+    if (!$(noneOption).hasClass("hidden")) {
+        $(noneOption).addClass("hidden");
+        $(noneOption).wrap("<span/>");
+    }
+}
+function getSequences(){
+    $.ajax({
+        type: 'GET',
+        url:"http://localhost:5000/flame/patterns",
+        success: function(data, status, req) {
+            gSequences = data;
+            if (data.length > 0) {
+                // populate sequence drop down
+                var sequenceSelect = $("#sequenceSelect")
+                for (var i=0; i<data.length; i++) {
+                    var sequenceName = data[i]["name"]
+                    sequenceSelect.prepend($('<option>', { value:sequenceName, text:sequenceName }));
+                }
+                // hide blank option
+                hideNone()
+                // populate from selected option
+                populateSequence(gSequences[0]);
+                
+                // select correct option
+                sequenceSelect.val(gSequences[0]["name"]);
+            }
+        }
+    });
+}
+
+function populateSequence(sequence){
+    deleteEvents();
+    // Go through sequence, populating the event fields
+    // Everything is after the last, unless it can't be
+    $('#sequenceName').val(sequence["name"]);
+    var events = sequence["events"];
+    var prevStartTime = 0;
+    var prevEndTime = 0;
+    for (var j=0; j<events.length; j++) {
+        var event = events[j];
+        // clear events
+        // create new event
+        newEvent = createEvent(null);
+        var ids = event["ids"]
+        for (var k=0; k<ids.length; k++){
+            var pooferId = ids[k];
+            var poofer = newEvent.find("#" + pooferId);
+            $(poofer).addClass('active');              
+        }
+        var startTime = event["startTime"];
+        var duration = event["duration"];
+        var startTimeType;
+        var startTimeModified;
+        if (startTime > prevEndTime) {
+            startTimeModified = startTime-prevEndTime;
+            startTimeType = "afterPreviousEnd";
+        } else if (startTime > prevStartTime) {
+            startTimeModified = startTime - prevStartTime;
+            startTimeType = "afterPreviousStart";
+        } else {
+            startTimeModified = startTime;
+            startTimeType = "absoluteTime";
+        }
+        prevStartTime = startTime;
+        prevEndTime = startTime + duration;
+        newEvent.find("#duration").val(event["duration"]);
+        newEvent.find("#startDelay").val(startTimeModified); 
+        newEvent.find("select#eventStart").val(startTimeType);
+    }
+}
+
+function test1(){
+    var sequence = {"name":"foobar","events":[{"ids":["NW","NT","NE"],"startTime":0,"duration":1000},{"ids":["EN","ET","ES"],"startTime":3000,"duration":1000}]};
+    populateSequence(sequence);
+} 
+
+function playSequence(){
+    // create stop and start events for each Event in the sequence
+    var events = $('.Event');
+    var prevStartTime = 0;
+    var prevEndTime = 0;
+    var eventList = [];
+    for (var i=0; i<events.length; i++){
+        var theEvent = $(events[i]);
+        var startTimeType = theEvent.find('select#eventStart');
+        console.log(startTimeType.val());
+        var startTime = parseInt(theEvent.find('#startDelay').val());
+        var duration = parseInt(theEvent.find('#duration').val());
+        if (startTimeType.val() == 'afterPreviousStart'){
+            startTime = prevStartTime + startTime;
+        } else if (startTimeType.val() == 'afterPreviousEnd'){
+            startTime = prevEndTime + startTime;
+        } else if (startTimeType.val() == 'absoluteTime') {
+            startTime = startTime; // noop
+        } else {
+            console.log("unknown start time type: " + startTime.val());
+        }
+        var endTime = startTime + duration;
+        prevStartTime = startTime;
+        prevEndTime   = endTime;
+        myObjStart = {"time":startTime, "type":"start", "event":theEvent};
+        myObjEnd   = {"time":endTime, "type":"end", "event":theEvent};
+        eventList.push(myObjStart);
+        eventList.push(myObjEnd);
+    }
+    // sort in ascending order
+    eventList.sort(function(event1, event2){ return event1["time"] - event2["time"]; });
+    setTimeout(function(){drawFrame(eventList, 0)}, 1);
+}
+
+function drawFrame(eventList, curIdx) {
+    var nEvents = eventList.length;
+    if (curIdx >= nEvents) {
+        return;
+    }
+    var curEvent = eventList[curIdx];
+    var activePoofers = curEvent["event"].find(".poofer.active");
+    var bigNoetica = $('#BigNoetica');
+    var onOff = (curEvent["type"] == "start");
+    for (var i=0; i<activePoofers.length; i++){
+        var poofer = activePoofers[i];
+        var pooferId = '#' + $(poofer).attr("id");
+        var bigPoofer = bigNoetica.find(pooferId);
+        if (onOff) {
+            if (!bigPoofer.hasClass('active')) {
+                bigPoofer.addClass('active');
+            }
+        } else {
+            if (bigPoofer.hasClass('active')){
+                bigPoofer.removeClass('active');
+            }
+        }
+    }
+    
+    if (curIdx + 1 < nEvents) {
+        var timeout = eventList[curIdx+1]["time"] - curEvent["time"];
+        setTimeout(function(){drawFrame(eventList, curIdx+1)}, timeout);
+    }
+}
+
+function serializeSequence() {
+    var events = $('.Event');
+    var prevStartTime = 0;
+    var prevEndTime = 0;
+    var eventList = [];
+    console.log("events length is " + events.length);
+    for (var i=0; i<events.length; i++){
+        console.log("processing event " + i );
+        var theEvent = $(events[i]);
+        var startTimeType = theEvent.find('select#eventStart');
+        var startTime = parseInt(theEvent.find('#startDelay').val());
+        var duration = parseInt(theEvent.find('#duration').val());
+        if (startTimeType.val() == 'afterPreviousStart'){
+            startTime = prevStartTime + startTime;
+        } else if (startTimeType.val() == 'afterPreviousEnd'){
+            startTime = prevEndTime + startTime;
+        } else if (startTimeType.val() == 'absoluteTime') {
+            startTime = startTime; // noop
+        } else {
+            console.log("unknown start time type: " + startTime.val());
+        }
+        
+        var activePoofers = theEvent.find(".poofer.active");
+        var idList = [];
+        for (var j=0; j<activePoofers.length; j++) {
+            var poofer = activePoofers[j];
+            var pooferId = $(poofer).attr("id");
+            idList.push(pooferId)
+        }
+        pooferEvent = {"ids":idList, "startTime":startTime, "duration":duration};
+        eventList.push(pooferEvent);
+        var endTime = startTime + duration;
+        prevStartTime = startTime;
+        prevEndTime   = endTime;
+    }    
+    // sort in ascending order
+    eventList.sort(function(event1, event2){ return event1["startTime"] - event2["startTime"]; });
+    var sequence = {"name":$("#sequenceName").val(), "events":eventList};
+    console.log(sequence);
+    return JSON.stringify(sequence);
+}
+
+</script>
+

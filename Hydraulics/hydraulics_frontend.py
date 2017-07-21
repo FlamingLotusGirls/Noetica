@@ -6,6 +6,7 @@ import BaseHTTPServer
 import json
 import hydraulics_drv
 import hydraulics_playback
+import logging
 
 from cgi import parse_header, parse_multipart
 from sys import version as python_version
@@ -13,6 +14,8 @@ if python_version.startswith('3'):
     from urllib.parse import parse_qs
 else:
     from urlparse import parse_qs
+    
+logger = logging.getLogger("HTTP")
 
 class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def getFile(self, mimeType):
@@ -35,9 +38,18 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def send200(self, data):
         self.send_response(200)
         self.send_header('Content-type','application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(json.dumps(data))
-    
+        
+    def do_OPTIONS(self):
+        print "OPTIONS"
+        self.send_response(200, "ok")
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")    
+        
     def do_GET(self):
         if self.path.endswith(".png"):
             self.getFile('image/png')
@@ -119,6 +131,10 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.sendError(404)
         else:
             self.sendError(404)
+            
+        def log_message(self, format, *args):
+            # yep, I'm sick of the annoying logging of all requests
+            pass
 
 def getHydraulicsState():
     control_x, control_y, control_z = hydraulics_drv.getCurrentInput()
