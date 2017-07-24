@@ -199,9 +199,9 @@ class four_20mA_IO_Thread(Thread):
                 # XXX - I need to be able to test this without the outputs hooked up!!!
                 '''  Write to outputs '''
                 if (self.state == PASSTHROUGH): 
-                    self.writeAnalogOutput(4,  0, acd[0])
-                    self.writeAnalogOutput(4,  1, acd[1])
-                    self.writeAnalogOutput(22, 0, acd[2])
+                    self.writeAnalogOutput(4,  0, adc[0])
+                    self.writeAnalogOutput(4,  1, adc[1])
+                    self.writeAnalogOutput(22, 0, adc[2])
                 elif (self.state == ATTRACT):
                     x,y,z = hydraulics_playback.getPlaybackData()
                     self.writeAnalogOutput(4,  0, x)
