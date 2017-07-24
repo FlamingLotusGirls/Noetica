@@ -17,7 +17,7 @@ instead of threads we can revisit that in a week or so, and webserver frameworks
 spin up their own threads in a way that's pretty much transparent to whoever is using them.)
 
 The code ends up looking something like this:
-(see poofer.py for my current set up code, which doesn't have all of these threads, but does
+(see flames.py for my current set up code, which doesn't have all of these threads, but does
 have some additional configuration '''
 
 import Queue
@@ -66,7 +66,7 @@ if __name__ == '__main__':
         
             
 ''' The poofer firing code would be structured something like this:'''
-import Thread
+from threading import Thread
 import Queue
 import json
 
@@ -118,12 +118,14 @@ class PooferFiringThread(Thread):
                 if type == "flameEffectStart":
                     # figure out firing sequence associated with the name, set
                     # up poofer events
+                    pass
                 # else - whatever other type of event you want to process ...
             except Queue.Empty:
                 # this is just a timeout - completely expected. Run the loop
                 pass
             except Exception:
                 # log this... Not expected!
+                pass
                 
 
 ''' And the flame effects connector code looks something like this: '''
