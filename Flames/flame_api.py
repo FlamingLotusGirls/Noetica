@@ -33,16 +33,16 @@ def flame_status():
             elif playState == "play":
                 flames_highlevel.globalRelease()
             else:
-                abort(400)
+                return Response("Invalid 'playState' value", 400)
         else:
-            abort(400)
-        return "", 200
+            return Response("Must have 'playState' value", 400)
+            
+        return Response("", 200)
         
     else:
         return makeJsonResponse(json.dumps(get_status()))
         
 def makeJsonResponse(jsonString, respStatus=200):
-    print "JSON RESPONSE data is", jsonString
     resp = Response(jsonString, status=respStatus, mimetype='application/json')
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
@@ -56,7 +56,7 @@ def specific_flame_status():
         abort(400)
     if request.method == 'POST':
         if not "enabled" in request.values:
-            abort(400)
+            return Response("'enabled' must be present", 400)
             
         enabled = request.values["enabled"].lower()
         if enabled == 'true':
@@ -64,7 +64,7 @@ def specific_flame_status():
         elif enabled == 'false':
             flames_highlevel.disablePoofer(poofer_id)
         else:
-            abort(400)
+            return Response("Invalid 'enabled' value", 400)
             
         return "" # XXX check for errors as a matter of course
     else:
@@ -77,8 +77,10 @@ def flame_patterns():
         return makeJsonResponse(json.dumps(get_flame_patterns()))
     else:
         if not "patternData" in request.values:
-            abort(400)
-        set_flame_pattern(request.values["patternData"])
+            return Response("'patternData' must be present", 400)
+        else:
+            set_flame_pattern(request.values["patternData"])
+            return Response("", 200)
         
     
 
@@ -96,7 +98,7 @@ def flame_pattern():
     if request.method == 'POST':
         # pattern create - pattern data included, but pattern name not in system
         if  (not includesPattern) and (not patternName_valid(patternName)):
-            abort(400)
+            return Response("Must have valid 'patternName'", 400)
             
         if includesPattern:
             patternData = json.loads(request.values["pattern"])
@@ -139,9 +141,10 @@ def flame_pattern():
         return ""
         
     else:
-        if  (not patternName_valid(patternName)):
-            abort(400)
-        return makeJsonResponse(json.dumps(get_pattern_status(patternName)))
+        if (not patternName_valid(patternName)):
+            return Response("Must have valid 'patternName'", 400)
+        else:
+            return makeJsonResponse(json.dumps(get_pattern_status(patternName)))
 
 def get_status():
     pooferList = list()
@@ -176,7 +179,7 @@ def get_flame_patterns():
     
 # abort 500 in general? how are errors expected to be propagated in this framework?s
 def set_flame_pattern(pattern):
-    pattern_manager.addOrModifyPattern(pattern)
+    pattern_manager.addOrModifyPattern(json.loads(pattern))
     pattern_manager.savePatterns()
     
 def poofer_id_valid(id):

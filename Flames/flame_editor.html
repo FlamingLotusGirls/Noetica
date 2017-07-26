@@ -46,7 +46,7 @@ h1 {font-family:sans-serif}
         <option value="createNew">Create New Sequence...</option>
       </select>
       <div name="playDiv" style="margin-top:10px"><button type="button" class="top-button" onclick="playSequence()">Play Sequence</button> &nbsp;
-      <button type="button" id="saveEventButton" class="top-button"> Save Sequence </button>&nbsp;
+      <button type="button" id="saveSequenceButton" class="top-button"> Save Sequence </button>&nbsp;
       <button type="button" id="createEventButton" class="top-button"> Create New Event </button>
       </div>
       <div id="EventTemplate" style="display:none; height:160px; border-width:2px; border-style:solid; margin-top:10px; padding:10px" >   
@@ -226,10 +226,22 @@ $(".deleteEventButton").live("click", function(){
     parentEvent.remove()
 });
 
-$("#saveEventButton").click(function() {
-    console.log(serializeSequence());
+// XXX FIXME - I'm not saving the information in gSequence data. Once you've moved off your 
+// sequence, you're lost.
+// I'm also not honoring the modify attribute
+$("#saveSequenceButton").click(function() {
+    var jsonStr = serializeSequence();
+    $.ajax({
+        type: 'POST',
+        data: {"patternData":jsonStr},
+        url:"http://localhost:5000/flame/patterns",
+        success: function(data, status, req) {
+            console.log("Save sequence success!");
+        }
+    });   
 });
 
+// XXX page reload on post??
 var newSequenceId = 1;
 
 $("#sequenceSelect").live('change', function(){
@@ -301,7 +313,10 @@ function getSequences(){
                 // hide blank option
                 hideNone()
                 // populate from selected option
-                populateSequence(gSequences[0])
+                populateSequence(gSequences[0]);
+                
+                // select correct option
+                sequenceSelect.val(gSequences[0]["name"]);
             }
         }
     });
@@ -458,103 +473,6 @@ function serializeSequence() {
     console.log(sequence);
     return JSON.stringify(sequence);
 }
-
-/*
-$("#Branch").live('change',function(){
-    console.log("Branch change called!!");
-    var branch = $(this);
-    var poofers = branch.siblings("#Poofer");
-    //console.log(poofers);
-    var poofer = $(poofers[0]);
-    poofer.empty()
-    console.log(poofer)
-    var val = branch.val();
-    if (val == "North") {
-        poofer.append($("<option>")
-            .val("North")
-            .html("North"));
-        poofer.append($("<option>")
-            .val("East")
-            .html("East"));
-        poofer.append($("<option>")
-            .val("West")
-            .html("West"));
-        poofer.append($("<option>")
-            .val("Top")
-            .html("Top"));
-    } else if (val == "South") {
-        console.log("South!!")
-        poofer.append($("<option>")
-            .val("South")
-            .html("South"));
-        poofer.append($("<option>")
-            .val("East")
-            .html("East"));
-        poofer.append($("<option>")
-            .val("West")
-            .html("West"));
-        poofer.append($("<option>")
-            .val("Top")
-            .html("Top"));
-    } else if (val == "East") {
-        poofer.append($("<option>")
-            .val("East")
-            .html("East"));
-        poofer.append($("<option>")
-            .val("North")
-            .html("North"));
-        poofer.append($("<option>")
-            .val("South")
-            .html("South"));
-        poofer.append($("<option>")
-            .val("Top")
-            .html("Top"));
-    } else if (val == "West"){
-        poofer.append($("<option>")
-            .val("West")
-            .html("West"));
-        poofer.append($("<option>")
-            .val("North")
-            .html("North"));
-        poofer.append($("<option>")
-            .val("South")
-            .html("South"));
-        poofer.append($("<option>")
-            .val("Top")
-            .html("Top"));
-    } else if (val == "Top") {
-        poofer.append($("<option>")
-            .val("North")
-            .html("North"));
-        poofer.append($("<option>")
-            .val("South")
-            .html("South"));
-        poofer.append($("<option>")
-            .val("East")
-            .html("East"));
-        poofer.append($("<option>")
-            .val("West")
-            .html("West"));
-        poofer.append($("<option>")
-            .val("Top")
-            .html("Top"));
-    } else if (val == "Bottom") {
-        poofer.append($("<option>")
-            .val("North")
-            .html("North"));
-        poofer.append($("<option>")
-            .val("South")
-            .html("South"));
-        poofer.append($("<option>")
-            .val("East")
-            .html("East"));
-        poofer.append($("<option>")
-            .val("West")
-            .html("West"));
-    }
-});
-*/
-
 
 </script>
 

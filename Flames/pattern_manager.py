@@ -151,7 +151,7 @@ def deletePattern(patternName):
         gPatterns.remove(pattern)
     
     
-def savePatterns(filename):
+def savePatterns(filename=None):
     if filename == None:
         filename = patternFileName
     with open(filename, 'w') as f: # open write 
