@@ -35,6 +35,7 @@ def shutdown():
     
     
 def doFlameEffect(flameEffectName):
+    logger.debug("Doing flame effect {}".format(flameEffectName))
     if not flameEffectName in disabledFlameEffects:
         flameEffectMsg = {"type":"flameEffectStart", "name":flameEffectName}
         cmdQueue.put(json.dumps(flameEffectMsg))
@@ -44,6 +45,7 @@ def stopFlameEffect(flameEffectName):
     cmdQueue.put(json.dumps(flameEffectMsg))
     
 def disableFlameEffect(flameEffectName):
+    print "Disable Flame effect", flameEffectName
     if not flameEffectName in disabledFlameEffects:
         disabledFlameEffects.append(flameEffectName)
     else:
@@ -52,6 +54,7 @@ def disableFlameEffect(flameEffectName):
     stopFlameEffect(flameEffectName)
 
 def enableFlameEffect(flameEffectName):
+    print "Enable flame effect", flameEffectName
     if flameEffectName in disabledFlameEffects:
         disabledFlameEffects.remove(flameEffectName)
     else:
@@ -83,11 +86,13 @@ def isPooferActive(pooferId):
     return True  # XXX FIXME. Want to be listening for events!
     
 def globalPause():
+    global globalEnable
     flameEffectMsg = {"type":"stop"}
     globalEnable = False
     cmdQueue.put(json.dumps(flameEffectMsg))
 
 def globalRelease():
+    global globalEnable
     globalEnable = True
     flameEffectMsg = {"type":"resume"}
     cmdQueue.put(json.dumps(flameEffectMsg))

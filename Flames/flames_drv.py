@@ -47,6 +47,13 @@
 # Bang protocol defined here: http://flg.waywardengineer.com/index.php?title=Bang_(!)_Protocol
 #
 ##########
+'''
+poofer sequence - let's define it as:
+pooferid, on time, delaytime
+[{"id":"NW", duration:1000, "startTime":1200} That's an event. So a sequence is 
+{"name":<name>, [{"id":"NW" etc... Let's use the tool to generate these.
+That's an event object. Not as easily human understandable, but it works
+'''
 
 import sys					# system functions
 import traceback			# exceptions and tracebacks
@@ -57,6 +64,7 @@ import Queue
 import json
 import logging
 from poofermapping import mappings as pooferMapping
+import pattern_manager
 
 logger = logging.getLogger("flames_drv")
 
@@ -125,12 +133,9 @@ except Exception as e:
 '''
 
 pooferFiringThread = None
-sequenceFile       = None
 
-def init(cmdQueue, sequenceFileName):
+def init(cmdQueue):
     global pooferFiringThread
-    global sequenceFile
-    sequenceFile = sequenceFileName
     pooferFiringThread = PooferFiringThread(cmdQueue)
     pooferFiringThread.start()
     

@@ -13,7 +13,7 @@ patternFileName = None
 
 logger = logging.getLogger('flames')
 
-def init(flameEffectsFile):
+def init(flameEffectsFile="./sequences.json"):
     global patternFileName
     
     logger.info("Pattern Manager Init, sequence file {}".format(flameEffectsFile))
