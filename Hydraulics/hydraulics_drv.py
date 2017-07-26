@@ -2,9 +2,16 @@
 
 # Based on sample code provided by WidgetLords for their raspberry pi 4-20mA analog 
 # read/write boards. Use SPI interface for communication ("Pi-SPI")
+try:
+    import RPi.GPIO as GPIO
+except:
+    from stubs import GPIO 
 
-import RPi.GPIO as GPIO
-import spidev
+try:
+    import spidev
+except:
+    from stubs import spidev
+
 import json
 import sys
 from threading import Thread, Lock
@@ -49,6 +56,7 @@ def init(interval = 1000):
     spi = None
     spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
                             # Make Sure SPI is enabled in RPi preferences
+                            
 
     GPIO.setmode(GPIO.BCM)  # Use RPi GPIO numbers
     GPIO.setwarnings(False) # disable warnings
@@ -58,7 +66,8 @@ def init(interval = 1000):
     
 def shutdown():
     print("Stopping driver thread")
-    ioThread.stop()
+    if ioThread:
+        ioThread.stop()
    
 def setTestOutputs(x, y, z):
     test_output_x = x
@@ -140,6 +149,8 @@ class four_20mA_IO_Thread(Thread):
         self.isRecording   = False
         self.recordingFile = None
         self.fileMutex = Lock()
+        self.onPi = True
+        
         GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
         GPIO.output(4,1)
         GPIO.setup(22,GPIO.OUT)      # Chip Select for the 2nd 2AO Analog Output module
@@ -178,6 +189,10 @@ class four_20mA_IO_Thread(Thread):
     def run(self):
         while (self.running):
             try:
+                if self.onPi:
+                    time.sleep(poll_interval)
+                    continue
+                    
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 ''' Read from inputs '''
                 for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
