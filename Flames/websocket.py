@@ -5,14 +5,17 @@ import event_manager
 
 logger = logging.getLogger("flames")
 websocket = None
+websocketThread = None
 
 def init(port):
     global websocket
+    global websocketThread
     logger.info("Websocket Init, port {}".format(port))
     websocket = WebsocketServer(port, '0.0.0.0')
-    websocket.serve_forever() # XXX will this not return? Need to check that!!!
+    websocketThread = Thread(target=websocket.serve_forever)
+    
+    #websocket.serve_forever() 
     event_manager.addListener(handleMsg)
-    print "AFTER SERVE FOREVER!!!"
     
 def shutdown():
     global websocket

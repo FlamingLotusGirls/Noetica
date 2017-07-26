@@ -6,42 +6,33 @@ from threading import Thread
 from threading import Lock
 from websocket_server import WebsocketServer
 import event_manager
+import pattern_manager
 
 logger = logging.getLogger("flames")
 
 cmdQueue   = None       # requests from upper level
 disabledPoofers = list()
 globalEnable = True
-flameEffects = list()
 disabledFlameEffects = list()
 activeFlameEffects = list()
 stateThread = None
 stateLock   = None
 
 
-def init(flameQueue, flameEffectsFile):
+def init(flameQueue):
     global cmdQueue
     global stateThread
     global stateLock 
-    logger.info("Flame Manager Init, flameEffectsFile {}".format(flameEffectsFile))
+    logger.info("Flame Manager Init")
     stateLock = Lock()
     cmdQueue = flameQueue
-    try:
-        with open(flameEffectsFile) as f:
-            flameSequences = json.load(f)
-            for sequence in flameSequences:
-                flameEffects.append(sequence["name"])
-    except KeyError:
-        log.exception("Misformatted flame effects file")
-        
+
     event_manager.addListener(eventHandler)
 
     
 def shutdown():
     logger.info("Flame Manager Shutdown")
     
-def getFlameEffects():
-    return flameEffects
     
 def doFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:

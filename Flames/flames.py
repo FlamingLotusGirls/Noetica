@@ -13,6 +13,7 @@ import flames_highlevel
 import flame_api
 import event_manager
 import websocket
+import pattern_manager
 
 # default parameters - configuration file overrides
 HTTP_PORT     = 9000  
@@ -46,6 +47,9 @@ if __name__ == '__main__':
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
+        # initialize pattern manager
+        pattern_manager.init(SEQUENCE_FILE)
+        
         # create queue for commands
         pooferCommandQueue = Queue.Queue()
                 
@@ -56,7 +60,7 @@ if __name__ == '__main__':
         event_manager.init()
         
         # Initialize high level flame interface
-        flames_highlevel.init(pooferCommandQueue, SEQUENCE_FILE)
+        flames_highlevel.init(pooferCommandQueue)
         
         # Initialize trigger system
         triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT)
@@ -77,4 +81,5 @@ if __name__ == '__main__':
     flames_highlevel.shutdown()
     websocket.shutdown()
     event_manager.shutdown()
+    pattern_manager.shutdown()
     

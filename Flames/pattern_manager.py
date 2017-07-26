@@ -16,7 +16,7 @@ logger = logging.getLogger('flames')
 def init(flameEffectsFile):
     global patternFileName
     
-    logger.info("Pattern Manager Init")
+    logger.info("Pattern Manager Init, sequence file {}".format(flameEffectsFile))
     patternFileName = flameEffectsFile
     patternNames = list()
     try:
@@ -81,6 +81,27 @@ def getAllPatterns():
     returnPattern = gPatterns
     patternLock.release()
     return returnPattern
+    
+def getPatternNames():
+    patternNames = list()
+    patternLock.acquire()
+    for pattern in gPatterns:
+        patternNames.append(pattern['name'])
+    patternLock.release()
+    return patternNames
+    
+def addOrModifyPattern(newPattern):
+    patternName = newPattern['name']
+    bFoundPattern = False
+    for pattern in gPatterns:
+        if pattern['name'] == patternName:
+            bFoundPattern = True
+            break
+    if bFoundPattern:
+        modifyPattern(newPattern)
+    else:
+        addPattern(newPattern)
+    
         
 def addPattern(newPattern): 
     if not _validatePattern(newPattern):
@@ -100,6 +121,9 @@ def addPattern(newPattern):
     patternLock.release()
     
 def modifyPattern(newPattern): 
+    if not _validatePattern(newPattern):
+        log.warn("Pattern {} does nto validate, will not modify".format(pattern['name']))
+        return 
     patternLock.acquire()
     patternName = newPattern['name']
     foundPattern = None
