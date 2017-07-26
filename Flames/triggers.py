@@ -29,8 +29,7 @@ logger = logging.getLogger('triggers')
 
 def init(triggerFile, addr, port):
     global triggerThread
-    logger.info("TRIGGER INIT")
-    logger.debug("trigger file is {}".format(triggerFile))
+    logger.info("Trigger Init, trigger file {}".format(triggerFile))
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f) 
@@ -41,7 +40,7 @@ def init(triggerFile, addr, port):
         logger.exception("Exception initializing triggers!")
         
 def shutdown():
-    logger.debug("shutting down trigger thread")
+    logger.debug("Trigger Shutdown")
     global triggerThread
     if triggerThread != None:
         triggerThread.stop()
@@ -149,7 +148,10 @@ class TriggerManager(Thread):
                     print "handing message to trigger"
                     trigger.processSculpturePosition(msgObj)
             except socket.error, (value, message):
-                logger.exception("Socket error {}".format(message))
+                if value != 61: # connection refused, common
+                    logger.exception("Socket error {}".format(message))
+                else:
+                    logger.info("Socket connection refused, will retry")
                 # Attempt reconnect
                 self.socketInit = False
                 if self.hydraulics_socket != None:

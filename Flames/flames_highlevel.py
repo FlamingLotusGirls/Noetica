@@ -2,18 +2,30 @@
 import Queue
 import json
 import logging
+from threading import Thread
+from threading import Lock
+from websocket_server import WebsocketServer
+import event_manager
 
 logger = logging.getLogger("flames")
 
-msgQueue = None
+cmdQueue   = None       # requests from upper level
 disabledPoofers = list()
 globalEnable = True
-disabledFlameEffects = list()
 flameEffects = list()
+disabledFlameEffects = list()
+activeFlameEffects = list()
+stateThread = None
+stateLock   = None
+
 
 def init(flameQueue, flameEffectsFile):
-    global msgQueue
-    msgQueue = flameQueue
+    global cmdQueue
+    global stateThread
+    global stateLock 
+    logger.info("Flame Manager Init, flameEffectsFile {}".format(flameEffectsFile))
+    stateLock = Lock()
+    cmdQueue = flameQueue
     try:
         with open(flameEffectsFile) as f:
             flameSequences = json.load(f)
@@ -21,9 +33,12 @@ def init(flameQueue, flameEffectsFile):
                 flameEffects.append(sequence["name"])
     except KeyError:
         log.exception("Misformatted flame effects file")
+        
+    event_manager.addListener(eventHandler)
+
     
 def shutdown():
-    pass
+    logger.info("Flame Manager Shutdown")
     
 def getFlameEffects():
     return flameEffects
@@ -31,11 +46,11 @@ def getFlameEffects():
 def doFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:
         flameEffectMsg = {"type":"flameEffectStart", "name":flameEffectName}
-        msgQueue.put(json.dumps(flameEffectMsg))
+        cmdQueue.put(json.dumps(flameEffectMsg))
     
 def stopFlameEffect(flameEffectName):
     flameEffectMsg = {"type":"flameEffectStop", "name":flameEffectName}
-    msgQueue.put(json.dumps(flameEffectMsg))
+    cmdQueue.put(json.dumps(flameEffectMsg))
     
 def disableFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:
@@ -52,27 +67,39 @@ def enableFlameEffect(flameEffectName):
         # log this - enable called twice on same flame effect  
         pass
 
+def isFlameEffectActive(flameEffectName):
+    return flameEffectName in activeFlameEffects
+    
+def isFlameEffectEnabled(flameEffectName):
+    return not flameEffectName in disabledFlameEffects
+
 def disablePoofer(pooferId):
     if not pooferId in disabledPoofers:
         disabledPoofers.append(pooferId)
         flameEffectMsg = {"type":"pooferDisable", "name":pooferId}
-        msgQueue.put(json.dumps(flameEffectMsg))
+        cmdQueue.put(json.dumps(flameEffectMsg))
 
 def enablePoofer(pooferId):
     if pooferId in disabledPoofers:
         disabledPoofers.remove(pooferId)
         flameEffectMsg = {"type":"pooferEnable", "name":pooferId}
-        msgQueue.put(json.dumps(flameEffectMsg))
+        cmdQueue.put(json.dumps(flameEffectMsg))
+        
+def isPooferEnabled(pooferId):
+    return not (pooferId in disabledPoofers)
+    
+def isPooferActive(pooferId):
+    return True  # XXX FIXME. Want to be listening for events!
     
 def globalPause():
     flameEffectMsg = {"type":"stop"}
     globalEnable = False
-    msgQueue.put(json.dumps(flameEffectMsg))
+    cmdQueue.put(json.dumps(flameEffectMsg))
 
 def globalRelease():
     globalEnable = True
     flameEffectMsg = {"type":"resume"}
-    msgQueue.put(json.dumps(flameEffectMsg))
+    cmdQueue.put(json.dumps(flameEffectMsg))
     
 def isStopped():
     return not globalEnable
@@ -82,3 +109,7 @@ def getDisabledPoofers():
     
 def getDisabledFlameEffects():
     return disabledFlameEffects
+    
+# XXX - event handler from low level code...
+def eventHandler(msg):
+    pass

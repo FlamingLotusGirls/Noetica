@@ -11,6 +11,8 @@ import triggers
 import flames_drv
 import flames_highlevel
 import flame_api
+import event_manager
+import websocket
 
 # default parameters - configuration file overrides
 HTTP_PORT     = 9000  
@@ -18,6 +20,7 @@ POSITION_PORT = 9001
 TRIGGER_FILE  = "./triggers.json"
 SEQUENCE_FILE = "./sequences.json"
 HYDRAULICS_ADDR = "localhost"
+WEBSOCKET_PORT = 5000
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
 
@@ -38,21 +41,28 @@ if __name__ == '__main__':
         TRIGGER_FILE  = configParser.get("flames", "triggerFile", TRIGGER_FILE)
         HYDRAULICS_ADDR = configParser.get("hydraulics", "server", HYDRAULICS_ADDR)
         SEQUENCE_FILE = configParser.get("flames", "sequenceFile", SEQUENCE_FILE)
+        WEBSOCKET_PORT = configParser.get("flames", "websocketPort", WEBSOCKET_PORT)
     except:
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
-        # create queue for sending
-        pooferEventQueue = Queue.Queue()
-        
+        # create queue for commands
+        pooferCommandQueue = Queue.Queue()
+                
         # Initialize Poofer board connection
-        flames_drv.init(pooferEventQueue, SEQUENCE_FILE)
+        flames_drv.init(pooferCommandQueue, SEQUENCE_FILE)
+        
+        # Initialize the Event Manager
+        event_manager.init()
         
         # Initialize high level flame interface
-        flames_highlevel.init(pooferEventQueue, SEQUENCE_FILE)
+        flames_highlevel.init(pooferCommandQueue, SEQUENCE_FILE)
         
         # Initialize trigger system
         triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT)
+        
+        # Initialize the websocket
+        websocket.init(int(WEBSOCKET_PORT))
         
         # Initialize webserver. This runs and runs and runs...
         flame_api.serve_forever(HTTP_PORT)
@@ -65,3 +75,6 @@ if __name__ == '__main__':
     triggers.shutdown()
     flames_drv.shutdown()
     flames_highlevel.shutdown()
+    websocket.shutdown()
+    event_manager.shutdown()
+    

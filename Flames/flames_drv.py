@@ -11,43 +11,7 @@
 # If it fails to correctly carry out the events in firingSequence, it will return 1. 
 # Successful firing will return 0.
 #
-########## Structure of pooferMappings
-#
-# pooferMappings is expected to be an object containing attributes with names equal to the poofer names, 
-# 	where each attribute value is a string of 3 digits that translate to its poofer's address on the poofer control boards.
-#	The first and second digits is the board number in hexadecimal, and the third digit is the channel on that board (there are 8 channels per board).
-# The required attribute names are:
-# 		NN,NW,NE,NT,EN,EE,ES,ET,SE,SS,SW,ST,WS,WW,WN,WT,TN,TE,TS,TW,TT,BN,BE,BS,BW
-# 	and the addresses depend on the number of channels we use on each poofer board. 
-# The addresses will have to be mapped and the relays on the poofer controller boards should be lableled 
-# 	in order to avoid remapping the poofers during each setup of the scuplture.
-# Example of the attributes of the pooferMappings object:
-# 		
-#	.NN="010"
-#	.NW="011"
-#	.NE="012"
-#	.NT="013"
-#	.EN="014"
-#	.EE="015"
-#	.ES="016"
-#	.ET="020"
-#	.SE="021"
-#	.SS="022"
-#	.SW="023"
-#	.ST="024"
-#	.WS="026"
-#	.WW="030"
-#	.WN="031"
-#	.WT="032"
-#	.TN="033"
-#	.TE="034"
-#	.TS="035"
-#	.TW="040"
-#	.TT="041"
-#	.BN="042"
-#	.BE="043"
-#	.BS="044"
-#	.BW="045"
+
 #
 ########## Structure of firingSequence
 # firingSequence 
@@ -92,6 +56,7 @@ from threading import Thread
 import Queue
 import json
 import logging
+from poofermapping import mappings as pooferMapping
 
 logger = logging.getLogger("flames_drv")
 
@@ -131,33 +96,7 @@ for step in firingSequence:
 print("firing events=",eventCount)
 print("==========================================================")
 '''
-##########debug 
-pooferMappings = {}
-pooferMappings["NN"]="010"
-pooferMappings['NW']="011"
-pooferMappings['NE']="012"
-pooferMappings['NT']="013"
-pooferMappings['EN']="014"
-pooferMappings['EE']="015"
-pooferMappings['ES']="016"
-pooferMappings['ET']="020"
-pooferMappings['SE']="021"
-pooferMappings['SS']="022"
-pooferMappings['SW']="023"
-pooferMappings['ST']="024"
-pooferMappings['WS']="026"
-pooferMappings['WW']="030"
-pooferMappings['WN']="031"
-pooferMappings['WT']="032"
-pooferMappings['TN']="033"
-pooferMappings['TE']="034"
-pooferMappings['TS']="035"
-pooferMappings['TW']="040"
-pooferMappings['TT']="041"
-pooferMappings['BN']="042"
-pooferMappings['BE']="043"
-pooferMappings['BS']="044"
-pooferMappings['BW']="045"
+
 '''
 ##########
 
@@ -188,11 +127,11 @@ except Exception as e:
 pooferFiringThread = None
 sequenceFile       = None
 
-def init(msgQueue, sequenceFileName):
+def init(cmdQueue, sequenceFileName):
     global pooferFiringThread
     global sequenceFile
     sequenceFile = sequenceFileName
-    pooferFiringThread = PooferFiringThread(msgQueue)
+    pooferFiringThread = PooferFiringThread(cmdQueue)
     pooferFiringThread.start()
     
 def shutdown():
@@ -204,9 +143,9 @@ def shutdown():
 class PooferFiringThread(Thread):
     TIMEOUT = 1 # 1 second timeout, even if no events
     
-    def __init__(self, msgQueue):
+    def __init__(self, cmdQueue):
         Thread.__init__(self)
-        self.msgQueue = msgQueue
+        self.cmdQueue = cmdQueue
         self.running = False
         self.pooferEvents = list() # time-ordered list of poofer events
         
@@ -226,12 +165,12 @@ class PooferFiringThread(Thread):
                 waitTime = PooferFiringThread.TIMEOUT
             
             try:
-                msg = msgQueue.get(True, waitTime)
+                cmd = cmdQueue.get(True, waitTime)
                 # parse message. If this is a request to do a flame sequence,
                 # set up poofer events, ordered by time. Event["time"] attribute
                 # should be current time (time.time()) plus the relative time from
                 # the start of the sequence
-                msgObj = json.loads(msg)
+                msgObj = json.loads(cmd)
                 type = msgObj["type"]
                 if type == "flameEffectStart" and checkSequence(msgObj):
                     # figure out firing sequence associated with the name, set
