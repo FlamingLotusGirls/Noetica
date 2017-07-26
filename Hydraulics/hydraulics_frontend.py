@@ -132,7 +132,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             self.sendError(404)
             
-        def log_message(format, ...):
+        def log_message(self, format, *args):
             # yep, I'm sick of the annoying logging of all requests
             pass
 
