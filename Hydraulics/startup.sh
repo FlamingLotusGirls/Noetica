@@ -1,3 +1,4 @@
+#!/bin/bash
 HOME=/home/flaming
 CFGFILE=$HOME/Noetica/noetica.cfg
 HYDRAULICS=$HOME/Noetica/Hydraulics/hydraulics.py
@@ -9,4 +10,3 @@ $CYCLELOGS $HYDRAULICS_LOG
 
 # start hydraulics code
 stdbuf -oL $HYDRAULICS $CFGFILE >& $HYDRAULICS_LOG &
-
