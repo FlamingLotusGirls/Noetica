@@ -13,7 +13,16 @@ logger = logging.getLogger("flames")
                      "poofer_enabled"|
                      "poofer_disabled"|
                      "pattern_enabled"|
-                     "pattern_disabled"], "id": [pooferId | patternName]}} '''
+                     "pattern_disabled"|
+                     "pattern_start" |
+                     "pattern_stop" |
+                     "triggerEnabled" |
+                     "triggerDisabled"
+                     "global_pause"
+                     "global_resume"
+                     "hydraulics_mode_change"
+                     "playback_start"
+                     "playback_stop"], "id": [pooferId | patternName | triggerName | playbackName]}} '''
                      
 ''' Listens on the event queue, and publishes events to listeners'''
     
