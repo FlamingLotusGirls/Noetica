@@ -48,7 +48,8 @@ ioThread = None
 poll_interval = 1
 logger = logging.getLogger('hydraulics')
 
-def init(interval = 1000):
+def init(interval = 1000, mode=PASSTHROUGH):
+    logger.info("Hydraulics driver init, interval {}, mode {}".format(interval, mode))
     global ioThread
     global poll_interval
     global logger
@@ -61,7 +62,7 @@ def init(interval = 1000):
     GPIO.setmode(GPIO.BCM)  # Use RPi GPIO numbers
     GPIO.setwarnings(False) # disable warnings
 
-    ioThread = four_20mA_IO_Thread(spi)
+    ioThread = four_20mA_IO_Thread(spi, mode)
     ioThread.start()
     
 def shutdown():
@@ -141,11 +142,11 @@ def setLoopbackValues(x, y, z):
         pass
 
 class four_20mA_IO_Thread(Thread):
-    def __init__(self, spi):
+    def __init__(self, spi, mode):
         Thread.__init__(self)
         self.spi = spi
         self.running = True
-        self.state = NO_MOVE
+        self.state = mode
         self.isRecording   = False
         self.recordingFile = None
         self.fileMutex = Lock()

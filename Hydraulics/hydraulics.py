@@ -19,12 +19,10 @@ PLAYBACK_DIR = "/home/flaming/Noetica/Hydraulics/playbacks/"
 
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(message)s', level=logging.DEBUG)
-#logging.basicConfig(format='%(asctime)-15s', level=logging.DEBUG)
-#logging.basicConfig(format=level=logging.DEBUG)
+
 if __name__ == '__main__':
 
     logging.info("Noetica Hydraulics")
-    print "STARTING NOETICA"
     if len(sys.argv) > 1:
         configFile = sys.argv[1]
     else:

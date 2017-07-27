@@ -7,6 +7,7 @@
 import os
 import datetime
 import time
+import logging
 
 import hydraulics_drv
 
@@ -18,9 +19,11 @@ playbackDataIdx = 0
 currentPlayback = None
 
 # XXX - should the playback file specify the interval in which it is expected to run? Probably...
+logger = logging.getLogger('playback')
 
 def init(playbackDirectory=playbackDir):
     global playbackDir
+    logger.info("Hydraulics playback init, playback dir {}".format(playbackDirectory))
     playbackDir = playbackDirectory
     try: 
         # look at directory containing playback files. Read into an array

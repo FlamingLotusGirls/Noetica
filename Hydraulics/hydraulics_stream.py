@@ -11,6 +11,7 @@ logger = logging.getLogger('hydraulics')
 
 def init(port):
     global hydraulics_connection_manager
+    logger.info("Hydraulics stream init, port {}".format(port))
     hydraulics_connection_manager = HydraulicsConnectionManager(port)
     hydraulics_connection_manager.start()
     
