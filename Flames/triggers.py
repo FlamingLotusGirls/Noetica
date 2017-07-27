@@ -29,7 +29,7 @@ logger = logging.getLogger('triggers')
 
 def init(triggerFile, addr, port):
     global triggerThread
-    logger.info("Trigger Init, trigger file {}".format(triggerFile))
+    logger.info("Trigger Init, trigger file {}, listing at {}:{}".format(triggerFile, addr, port))
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f) 
@@ -145,7 +145,6 @@ class TriggerManager(Thread):
                 
                 # got message, hand to objects
                 for trigger in self.triggerList:
-                    print "handing message to trigger"
                     trigger.processSculpturePosition(msgObj)
             except socket.error, (value, message):
                 if value != 61: # connection refused, common
@@ -232,8 +231,6 @@ class TriggerObject():
         
         currentTime = time.time() 
         targetPoint = self.points[self.pointTarget]
-        
-        print "received position data", position
         
         if self.state == LINGERING:
             # check that we have either passed the linger timeout, or are still near the point in question

@@ -189,9 +189,7 @@ class four_20mA_IO_Thread(Thread):
     def run(self):
         while (self.running):
             try:
-                if self.onPi:
-                    time.sleep(poll_interval)
-                    continue
+                time.sleep(poll_interval)
                     
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 ''' Read from inputs '''

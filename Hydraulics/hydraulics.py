@@ -18,7 +18,7 @@ HYDRAULICS_POLL_INTERVAL = 200  # hardware poll interval, in ms
 PLAYBACK_DIR = "/home/flaming/Noetica/Hydraulics/playbacks/"
 
 
-logging.basicConfig(format='%(asctime)-15s %(levelname)s %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
 
 if __name__ == '__main__':
 

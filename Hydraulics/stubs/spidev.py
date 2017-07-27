@@ -11,5 +11,5 @@ class SpiDev():
     def xfer(self, data):
         return [0,0,0]
         
-    def writeBytes(self, byte1, byte2):
+    def writebytes(self, byteArray):
         pass

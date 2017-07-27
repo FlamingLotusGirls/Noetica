@@ -18,6 +18,8 @@ app = Flask("flg", static_url_path='')
 
 hydraulics_port = HYDRAULICS_PORT
 
+# XXX TODO - function to set the log level
+
 def serve_forever(httpPort=PORT, hydraulicsAddr=hydraulics_addr, hydraulicsPort=HYDRAULICS_PORT ):
     logger.info("FLAMES WebServer: port {}, hydraulics addr {}, \
                                       hydraulics port {}".format(httpPort,hydraulicsAddr, hydraulicsPort))
