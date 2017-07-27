@@ -1,6 +1,3 @@
-# skeleton for API
-# To run: 'FLASK_APP=flame_api.py flask run'
-
 from flask import Flask
 from flask import request
 from flask import Response
@@ -18,7 +15,7 @@ logger = logging.getLogger("flames")
 app = Flask("flg", static_url_path='')
 
 def serve_forever(httpPort=PORT):
-    logger.info("FLAME WebServer: port {}".format(httpPort))
+    logger.info("FLAMES WebServer: port {}".format(httpPort))
     app.run(host="0.0.0.0", port=httpPort, threaded=True) ## XXX - FIXME - got a broken pipe on the socket that terminated the application (uncaught exception) supposedly this is fixed in flask 0.12
 
 # GET /flame. Get status of all poofers, any active patterns. (Poofer status is [on|off], [enabled|disabled].)

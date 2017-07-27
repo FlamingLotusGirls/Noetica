@@ -10,7 +10,7 @@ import ConfigParser
 import triggers
 import flames_drv
 import flames_controller
-import flame_api
+import flames_webserver
 import event_manager
 import websocket
 import pattern_manager
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         websocket.init(int(WEBSOCKET_PORT))
         
         # Initialize webserver. This runs and runs and runs...
-        flame_api.serve_forever(HTTP_PORT)
+        flames_webserver.serve_forever(HTTP_PORT)
         
     except KeyboardInterrupt:
         print "Keyboard interrupt detected, terminating"
