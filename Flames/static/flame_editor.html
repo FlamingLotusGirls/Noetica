@@ -79,7 +79,7 @@ h1 {font-family:sans-serif}
 </body>
 </html>
 
-<script type="text/javascript" src="jquery-1.4.3.min.js"></script>
+<script type="text/javascript" src="jquery-1.12.4.min.js"></script>
 
 <script type="text/javascript">
 
@@ -102,8 +102,8 @@ $(document).ready(function() {
 
 function insertNoeticaImage(parentDiv, boxWidth, allowClicks) {
     // add the damn poofers
-    for (i=0; i<7; i++){
-        for (j=0; j<11; j++){
+    for (var i=0; i<7; i++){
+        for (var j=0; j<11; j++){
             var newDiv = $("<div class='poofer'>");
             newDiv.width(boxWidth-2);
             newDiv.height(boxWidth-2);
@@ -174,7 +174,8 @@ function insertNoeticaImage(parentDiv, boxWidth, allowClicks) {
                 newDiv.attr("id", "SS");
             }
             // Only add the ones that have poofers in them
-            if (newDiv.attr("id") != ""){
+            var attr = newDiv.attr("id");
+            if (typeof attr !== typeof undefined && attr !== false) {
                 parentDiv.append(newDiv);
             }
         }
@@ -211,7 +212,9 @@ function deleteEvents(){
     events.remove();
 }
 
-$(".insertEventButton").live('click', function(){
+
+
+$("#createSequenceDiv").on('click', ".insertEventButton", function(){
     var sibling = $(this).parents("#Event");
     createEvent($(sibling));
 });
@@ -220,7 +223,7 @@ $("#createEventButton").click(function(){
     createEvent(null);
 });
 
-$(".deleteEventButton").live("click", function(){
+$("#createSequenceDiv").on("click", ".deleteEventButton", function(){
     var thisDelete = $(this);
     var parentEvent = thisDelete.parents(".Event");
     parentEvent.remove()
@@ -244,7 +247,7 @@ $("#saveSequenceButton").click(function() {
 // XXX page reload on post??
 var newSequenceId = 1;
 
-$("#sequenceSelect").live('change', function(){
+$("#sequenceSelect").on('change', function(){
     var currentSelection = $(this).val();
     if (currentSelection == "createNew") {
         var newSequenceName = "Sequence " + newSequenceId++;
@@ -280,7 +283,7 @@ function createEmptySequence(name){
 }
 
 
-$(".pooferActive").live('click', function(){
+$("#createSequenceDiv").on('click', ".pooferActive", function(){
     curThis = $(this);
     if (curThis.hasClass('active')) {
         curThis.removeClass('active');

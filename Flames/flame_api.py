@@ -19,7 +19,7 @@ app = Flask("flg", static_url_path='')
 
 def serve_forever(httpPort=PORT):
     logger.info("FLAME WebServer: port {}".format(httpPort))
-    app.run(host="0.0.0.0", port=httpPort)
+    app.run(host="0.0.0.0", port=httpPort, threaded=True) ## XXX - FIXME - got a broken pipe on the socket that terminated the application (uncaught exception) supposedly this is fixed in flask 0.12
 
 # GET /flame. Get status of all poofers, any active patterns. (Poofer status is [on|off], [enabled|disabled].)
 # POST /flame playState=[pause|play]. Whole sculpture gross control. Pause/Play: Pause all poofing and flame effects (should terminate any current patterns, prevent any poofing until Play is called]
