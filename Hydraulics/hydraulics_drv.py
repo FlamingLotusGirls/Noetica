@@ -149,7 +149,6 @@ class four_20mA_IO_Thread(Thread):
         self.isRecording   = False
         self.recordingFile = None
         self.fileMutex = Lock()
-        self.onPi = True
         
         GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
         GPIO.output(4,1)
@@ -188,9 +187,7 @@ class four_20mA_IO_Thread(Thread):
         
     def run(self):
         while (self.running):
-            try:
-                time.sleep(poll_interval)
-                    
+            try:                    
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 ''' Read from inputs '''
                 for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
