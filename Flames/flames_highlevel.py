@@ -45,7 +45,6 @@ def stopFlameEffect(flameEffectName):
     cmdQueue.put(json.dumps(flameEffectMsg))
     
 def disableFlameEffect(flameEffectName):
-    print "Disable Flame effect", flameEffectName
     if not flameEffectName in disabledFlameEffects:
         disabledFlameEffects.append(flameEffectName)
     else:
@@ -54,7 +53,6 @@ def disableFlameEffect(flameEffectName):
     stopFlameEffect(flameEffectName)
 
 def enableFlameEffect(flameEffectName):
-    print "Enable flame effect", flameEffectName
     if flameEffectName in disabledFlameEffects:
         disabledFlameEffects.remove(flameEffectName)
     else:
