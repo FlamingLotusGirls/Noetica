@@ -9,13 +9,22 @@ import poofermapping
 import pattern_manager
 
 PORT = 5000
+HYDRAULICS_PORT = 9000
+hydraulics_addr = "hydraulicspi.local"
 
 logger = logging.getLogger("flames")
 
 app = Flask("flg", static_url_path='')
 
-def serve_forever(httpPort=PORT):
-    logger.info("FLAMES WebServer: port {}".format(httpPort))
+hydraulics_port = HYDRAULICS_PORT
+
+def serve_forever(httpPort=PORT, hydraulicsAddr=hydraulics_addr, hydraulicsPort=HYDRAULICS_PORT ):
+    logger.info("FLAMES WebServer: port {}, hydraulics addr {}, \
+                                      hydraulics port {}".format(httpPort,hydraulicsAddr, hydraulicsPort))
+    global hydraulics_port
+    global hydraulics_addr
+    hydraulics_port = hydraulicsPort
+    hydraulics_addr = hydraulicsAddr
     app.run(host="0.0.0.0", port=httpPort, threaded=True) ## XXX - FIXME - got a broken pipe on the socket that terminated the application (uncaught exception) supposedly this is fixed in flask 0.12
 
 # GET /flame. Get status of all poofers, any active patterns. (Poofer status is [on|off], [enabled|disabled].)
@@ -45,10 +54,11 @@ def makeJsonResponse(jsonString, respStatus=200):
     return resp
 
 
-# GET /flame/poofers/<poofername>. Get status of particular poofer
-# POST /flame/poofers/<poofername> enabled=[true|false]. Set enabled state for individual poofers
 @app.route("/flame/poofers/<poofer_id>", methods=['GET', 'POST'])
 def specific_flame_status(poofer_id):
+    ''' GET /flame/poofers/<poofername>. Get status of particular poofer.
+        POST /flame/poofers/<poofername> enabled=[true|false]. Set enabled state for 
+        individual poofers.'''
     if not poofer_id_valid(poofer_id):
         abort(400)
     if request.method == 'POST':
@@ -67,9 +77,10 @@ def specific_flame_status(poofer_id):
     else:
         return makeJsonResponse(json.dumps(get_poofer_status(poofer_id)))
 
-# GET /flame/patterns. Get list of all flame patterns, whether active or not
 @app.route("/flame/patterns", methods=['GET','POST'])
 def flame_patterns():
+    ''' GET /flame/patterns: Get list of all flame patterns, whether active or not
+        POST /flame/patterns: Creates a new flame pattern from json patterndata'''
     if request.method == 'GET':
         return makeJsonResponse(json.dumps(get_flame_patterns()))
     else:
@@ -78,9 +89,6 @@ def flame_patterns():
         else:
             set_flame_pattern(request.values["patternData"])
             return Response("", 200)
-        
-    
-
 
 
 @app.route("/flame/patterns/<patternName>", methods=['GET', 'POST'])
@@ -145,6 +153,13 @@ def flame_pattern(patternName):
             return Response("Must have valid 'patternName'", 400)
         else:
             return makeJsonResponse(json.dumps(get_pattern_status(patternName)))
+            
+@app.route("/hydraulics", methods=['GET', 'POST'])
+@app.route("/hydraulics/playbacks", methods=['GET'])
+@app.route("/hydraulics/position", methods=['GET'])
+def remote_hydraulics():
+    status, response = hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
+    return Response(response, status)
 
 def get_status():
     pooferList = list()
@@ -190,6 +205,20 @@ def patternName_valid(patternName):
     
 def param_valid(value, validValues):
     return value != None and (value.lower() in validValues)
+    
+def hydraulics_passthrough(request, method, params):
+    hydraulicsBaseURL = "http://" + hydraulics_addr + ":" + str(hydraulics_port)
+    if method == "POST":
+        r = requests.post(hydraulicsBaseURL+request, data=params)
+    elif method == "GET":
+        r = requests.get(hydraulicsBaseURL + request, data=params)
+    else:
+        return {404, "Endpoint unknown"}
+        
+    print r
+    print r.text
+        
+    return {r.status_code, r.text} # XXX FIXME - check what r.json does on a non-json return.
 
     
 if __name__ == "__main__":
@@ -209,14 +238,14 @@ if __name__ == "__main__":
     flames_drv.init(commandQueue)
     flames_controller.init(commandQueue)
     
-    flaskThread = Thread(target=serve_forever)
+    flaskThread = Thread(target=serve_forever, args=[5000, "localhost", 9000])
     flaskThread.start()
     serve_forever
     
     print "About to make request!"
-    
+
     baseURL = 'http://localhost:' + str(PORT) + "/"
-    
+        
     print "Setting playstate to Pause"
     r = requests.post(baseURL + "flame", data={"playState":"pause"})
     print r.status_code
@@ -234,33 +263,33 @@ if __name__ == "__main__":
     print r.json()
     
     print "Get poofers"
-    r = requests.get(baseURL + "flame/poofers/NW");
+    r = requests.get(baseURL + "flame/poofers/NW")
     print r.status_code
     print r.json()
     
     print "Set poofer enabled/disabled"
     r = requests.post(baseURL + "flame/poofers/NW", data={"enabled":"false"})
     
-    r = requests.get(baseURL + "flame/poofers/NW");
+    r = requests.get(baseURL + "flame/poofers/NW")
     print r.status_code
     print r.json()
 
     r = requests.post(baseURL + "flame/poofers/NW", data={"enabled":"true"})
     
-    r = requests.get(baseURL + "flame/poofers/NW");
+    r = requests.get(baseURL + "flame/poofers/NW")
     print r.status_code
     print r.json()
     
     print "Set pattern enabled/disabled"
     r = requests.post(baseURL + "flame/patterns/Top", data={"enabled":"false"})
     
-    r = requests.get(baseURL + "flame/patterns/Top");
+    r = requests.get(baseURL + "flame/patterns/Top")
     print r.status_code
     print r.json()
 
     r = requests.post(baseURL + "flame/patterns/Top", data={"enabled":"true"})
     
-    r = requests.get(baseURL + "flame/patterns/Top");
+    r = requests.get(baseURL + "flame/patterns/Top")
     print r.status_code
     print r.json()   
 
@@ -269,7 +298,23 @@ if __name__ == "__main__":
     
     print "Set pattern inactive"
     r = requests.post(baseURL + "flame/patterns/Top", data={"active":"false"})
+   
+    print "Try hydraulics request"
+    r = requests.get(baseURL + "hydraulics")
+    print r.status_code
+    print r.json()
+    
+    r = requests.get(baseURL + "hydraulics/playbacks")
+    print r.status_code
+    print r.json()    
 
+    r = requests.get(baseURL + "hydraulics/position")
+    print r.status_code
+    print r.json()    
+
+    r = requests.post(baseURL + "hydraulics", data={"state":"nomove"})
+    print r.status_code
+   
 
     
     

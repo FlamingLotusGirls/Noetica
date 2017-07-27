@@ -16,12 +16,13 @@ import websocket
 import pattern_manager
 
 # default parameters - configuration file overrides
-HTTP_PORT     = 9000  
-POSITION_PORT = 9001
+HTTP_PORT     = 5000  
 TRIGGER_FILE  = "./triggers.json"
 SEQUENCE_FILE = "./sequences.json"
 HYDRAULICS_ADDR = "localhost"
-WEBSOCKET_PORT = 5000
+HTTP_PORT_HYDRAULICS = 9000
+POSITION_PORT = 9001
+WEBSOCKET_PORT = 5001
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
 
@@ -38,6 +39,7 @@ if __name__ == '__main__':
         configParser = ConfigParser.ConfigParser() 
         configParser.read(configFile)
         HTTP_PORT     = int(configParser.get("flames", "httpPort", HTTP_PORT))
+        HTTP_PORT_HYDRAULICS = int(configParser.get("hydraulics", "httpPort", HTTP_PORT_HYDRAULICS))
         POSITION_PORT = int(configParser.get("hydraulics", "streamPort", POSITION_PORT))
         TRIGGER_FILE  = configParser.get("flames", "triggerFile", TRIGGER_FILE)
         HYDRAULICS_ADDR = configParser.get("hydraulics", "server", HYDRAULICS_ADDR)
@@ -63,13 +65,13 @@ if __name__ == '__main__':
         flames_controller.init(pooferCommandQueue)
         
         # Initialize trigger system
-        triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT)
+        triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT )
         
         # Initialize the websocket
         websocket.init(int(WEBSOCKET_PORT))
         
         # Initialize webserver. This runs and runs and runs...
-        flames_webserver.serve_forever(HTTP_PORT)
+        flames_webserver.serve_forever(HTTP_PORT, HYDRAULICS_ADDR, HTTP_PORT_HYDRAULICS)
         
     except KeyboardInterrupt:
         print "Keyboard interrupt detected, terminating"
