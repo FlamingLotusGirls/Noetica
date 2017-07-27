@@ -7,7 +7,7 @@ from flask import Response
 import json
 import logging
 
-import flames_highlevel
+import flames_controller
 import poofermapping
 import pattern_manager
 
@@ -29,9 +29,9 @@ def flame_status():
         if "playState" in request.values:
             playState = request.values["playState"].lower()
             if playState == "pause":
-                flames_highlevel.globalPause()
+                flames_controller.globalPause()
             elif playState == "play":
-                flames_highlevel.globalRelease()
+                flames_controller.globalRelease()
             else:
                 return Response("Invalid 'playState' value", 400)
         else:
@@ -60,9 +60,9 @@ def specific_flame_status(poofer_id):
             
         enabled = request.values["enabled"].lower()
         if enabled == 'true':
-            flames_highlevel.enablePoofer(poofer_id)
+            flames_controller.enablePoofer(poofer_id)
         elif enabled == 'false':
-            flames_highlevel.disablePoofer(poofer_id)
+            flames_controller.disablePoofer(poofer_id)
         else:
             return Response("Invalid 'enabled' value", 400)
             
@@ -131,14 +131,14 @@ def flame_pattern(patternName):
         
         if enabledValid:
             if (enabled == "true"):
-                flames_highlevel.enableFlameEffect(patternName)
+                flames_controller.enableFlameEffect(patternName)
             elif (enabled == "false"):
-                flames_highlevel.disableFlameEffect(patternName)
+                flames_controller.disableFlameEffect(patternName)
         if activeValid:
             if (active == "true"):
-                flames_highlevel.doFlameEffect(patternName)
+                flames_controller.doFlameEffect(patternName)
             elif (active == "false"):
-                flames_highlevel.stopFlameEffect(patternName)
+                flames_controller.stopFlameEffect(patternName)
 
     
         return ""
@@ -154,13 +154,13 @@ def get_status():
     patternList = list()
     for pooferId in poofermapping.mappings: 
         pooferList.append({"id" : pooferId, 
-                           "enabled": flames_highlevel.isPooferEnabled(pooferId),
-                           "active" : flames_highlevel.isPooferActive(pooferId)})
+                           "enabled": flames_controller.isPooferEnabled(pooferId),
+                           "active" : flames_controller.isPooferActive(pooferId)})
     for patternName in pattern_manager.getPatternNames():
         patternList.append({"name" : patternName,
-                            "enabled": flames_highlevel.isFlameEffectEnabled(patternName),
-                            "active" : flames_highlevel.isFlameEffectActive(patternName)})
-    return {"globalState": (not flames_highlevel.isStopped()), 
+                            "enabled": flames_controller.isFlameEffectEnabled(patternName),
+                            "active" : flames_controller.isFlameEffectActive(patternName)})
+    return {"globalState": (not flames_controller.isStopped()), 
             "poofers":pooferList, 
             "patterns":patternList }
                     
@@ -168,13 +168,13 @@ def get_status():
 
 def get_poofer_status(poofer_id):
     # there's enabled, and there's active (whether it's currently on)
-    pooferStatus = {"enabled": flames_highlevel.isPooferEnabled(poofer_id),
-                    "active" : flames_highlevel.isPooferActive(poofer_id)}
+    pooferStatus = {"enabled": flames_controller.isPooferEnabled(poofer_id),
+                    "active" : flames_controller.isPooferActive(poofer_id)}
     return pooferStatus
     
 def get_pattern_status(patternName):
-    patternStatus = {"enabled": flames_highlevel.isFlameEffectEnabled(patternName),
-                     "active" : flames_highlevel.isFlameEffectActive(patternName)}
+    patternStatus = {"enabled": flames_controller.isFlameEffectEnabled(patternName),
+                     "active" : flames_controller.isFlameEffectActive(patternName)}
     return patternStatus
 
 def get_flame_patterns():
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     
     commandQueue = Queue.Queue()
     flames_drv.init(commandQueue)
-    flames_highlevel.init(commandQueue)
+    flames_controller.init(commandQueue)
     
     flaskThread = Thread(target=serve_forever)
     flaskThread.start()

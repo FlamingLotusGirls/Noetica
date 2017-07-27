@@ -19,7 +19,7 @@ import logging
 import time
 import socket
 import sys
-import flames_highlevel
+import flames_controller
 
 triggerList = list()
 triggerThread = None
@@ -240,7 +240,7 @@ class TriggerObject():
             if currentTime > self.lingerTime:
                 # is there a flame effect associated?
                 if "flameEffect" in self.points[self.pointTarget]: 
-                    flames_highlevel.doFlameEffect(self.points[self.pointTarget]["flameEffect"])
+                    flames_controller.doFlameEffect(self.points[self.pointTarget]["flameEffect"])
                     log.info("Flame effect sequence {} called!".format(self.points[self.pointTarget]["flameEffect"]))
                     
                 if (len(self.points) > (self.pointTarget+1)):  # go to next point in sequence
@@ -268,7 +268,7 @@ class TriggerObject():
                     self.lingerTime = currentTime + targetPoint["lingerTime"]
                 else: # passthrough case
                     if "flameEffect" in targetPoint: 
-                        flames_highlevel.doFlameEffect(targetPoint["flameEffect"])
+                        flames_controller.doFlameEffect(targetPoint["flameEffect"])
                     self.state = LOOKING
                     self.pointTarget = self.pointTarget + 1
                     if self.pointTarget >= len(self.points):

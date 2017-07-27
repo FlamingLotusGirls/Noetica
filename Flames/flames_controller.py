@@ -23,7 +23,7 @@ def init(flameQueue):
     global cmdQueue
     global stateThread
     global stateLock 
-    logger.info("Flame Manager Init")
+    logger.info("Flame Controller Init")
     stateLock = Lock()
     cmdQueue = flameQueue
 
@@ -31,7 +31,7 @@ def init(flameQueue):
 
     
 def shutdown():
-    logger.info("Flame Manager Shutdown")
+    logger.info("Flame Controller Shutdown")
     
     
 def doFlameEffect(flameEffectName):

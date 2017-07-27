@@ -9,7 +9,7 @@ import ConfigParser
 
 import triggers
 import flames_drv
-import flames_highlevel
+import flames_controller
 import flame_api
 import event_manager
 import websocket
@@ -60,7 +60,7 @@ if __name__ == '__main__':
         event_manager.init()
         
         # Initialize high level flame interface
-        flames_highlevel.init(pooferCommandQueue)
+        flames_controller.init(pooferCommandQueue)
         
         # Initialize trigger system
         triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
             
     triggers.shutdown()
     flames_drv.shutdown()
-    flames_highlevel.shutdown()
+    flames_controller.shutdown()
     websocket.shutdown()
     event_manager.shutdown()
     pattern_manager.shutdown()
