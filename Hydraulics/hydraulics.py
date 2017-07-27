@@ -8,7 +8,7 @@ import sys
 
 import hydraulics_drv
 import hydraulics_playback
-import hydraulics_frontend
+import hydraulics_webserver
 import hydraulics_stream
 
 # default parameters - configuration file overrides
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         hydraulics_playback.init()        
 
         # initialize httpserver 
-        httpd = BaseHTTPServer.HTTPServer(("", HTTP_PORT), hydraulics_frontend.HydraulicsHandler)
+        httpd = BaseHTTPServer.HTTPServer(("", HTTP_PORT), hydraulics_webserver.HydraulicsHandler)
         httpd.serve_forever()
     except KeyboardInterrupt:
         print "Keyboard interrupt detected, terminating"

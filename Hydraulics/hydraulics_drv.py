@@ -52,7 +52,6 @@ def init(interval = 1000, mode=PASSTHROUGH):
     logger.info("Hydraulics driver init, interval {}, mode {}".format(interval, mode))
     global ioThread
     global poll_interval
-    global logger
     poll_interval = float(interval)/float(1000)
     spi = None
     spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
