@@ -49,7 +49,7 @@ class HydraulicsConnectionManager(Thread):
                 self.hydraulics_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #                self.hydraulics_socket.bind((socket.gethostname(), self.port))
                 self.hydraulics_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                self.hydraulics_socket.bind(("localhost", self.port))
+                self.hydraulics_socket.bind(("0.0.0.0", self.port))
                 logger.info("bind to {}:{}".format(socket.gethostname(), self.port))
                 self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR?
                 self.hydraulics_socket.listen(5)  # really should only ever be one or two connection requests
