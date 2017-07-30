@@ -83,3 +83,16 @@ body {
 .hydraulics-position-display-container {
   margin-left: 1em;
 }
+.hydraulics-attract-file-picker {
+  list-style: none;
+  border: 1px solid black;
+  padding: 1em;
+}
+.hydraulics-attract-file {
+  background-color: #ffffff;
+  color: #666666;
+}
+.hydraulics-attract-file.selected {
+  background-color: #eeeeee;
+  color: #000000;
+}
