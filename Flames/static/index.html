@@ -4,21 +4,19 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Noetica Controls</title>
-  <link rel="stylesheet" type="text/css" href="jquery.mobile-1.4.5.min.css">
   <link rel="stylesheet" type="text/css" href="flame.css">
   <script src="jquery-1.12.4.min.js"></script>
-  <script src="jquery.mobile-1.4.5.min.js"></script>
   <script src="flame.js"></script>
 </head>
 <body>
-  <div class="page-container" data-role="page">
-    <div class="header-container" data-role="header">
+  <div class="page-container">
+    <div class="header-container">
       <label title="Select this to poll for data from the server">
-        Polling: <input type="checkbox" class="polling-checkbox">
+        Polling <input type="checkbox" class="polling-checkbox">
       </label>
       <button class="invert-button" title="Select this to invert the page colors for night time">Invert colors</button>
     </div>
-    <div class="main-container" role="main">
+    <div class="main-container">
       <div class="flame-container">
         <div class="poofer-display-container">
           <table class="poofer-display">
@@ -102,7 +100,7 @@
         <div class="poofer-controls-container">
           <div class="poofer-main-toggle-container">
             <label>All Poofers
-              <button class="poofer-main-toggle-button">
+              <input type="checkbox" class="poofer-main-toggle-button">
             </label>
           </div>
           <div class="poofer-individual-toggle-container">
@@ -115,7 +113,7 @@
       <div class="hydraulics-container">
         <div class="hydraulics-main-toggle-container">
           <label>Hydraulics
-            <button class="hydraulics-main-toggle-button"></button>
+            <input type="checkbox" class="hydraulics-main-toggle-button">
           </label>
         </div>
         <div class="hydraulics-central-controls-container">
