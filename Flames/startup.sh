@@ -1,3 +1,4 @@
+#!/bin/bash
 HOME=/home/flaming
 CFGFILE=$HOME/Noetica/noetica.cfg
 FLAMES=$HOME/Noetica/Flames/flames.py
