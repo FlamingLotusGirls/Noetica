@@ -77,7 +77,7 @@ maxNonfiringRestTime				= 9999 			#milliseconds, dictates the maximum time for a
 maxCommandsInAFiringSequence		= 50 			#integer, needs to be tested
 
 #regex filter, precompiled for efficiency
-validFiringSequenceEvents			= re.compile('(^(RR|NN|NW|NE|NT|EN|EE|ES|ET|SE|SS|SW|ST|WS|WW|WN|WT|TN|TE|TS|TW|TT|BN|BE|BS|BW)[0-9][0-9][0-9][0-9]$)')
+#validFiringSequenceEvents			= re.compile('(^(RR|NN|NW|NE|NT|EN|EE|ES|ET|SE|SS|SW|ST|WS|WW|WN|WT|TN|TE|TS|TW|TT|BN|BE|BS|BW)[0-9][0-9][0-9][0-9]$)')
 
 
 ### VARIABLES ###
@@ -150,6 +150,7 @@ class PooferFiringThread(Thread):
     
     def __init__(self, cmdQueue):
         Thread.__init__(self)
+        logger.info("Init Poofer Firing Thread")
         self.cmdQueue = cmdQueue
         self.running = False
         self.pooferEvents = list() # time-ordered list of poofer events
@@ -168,9 +169,10 @@ class PooferFiringThread(Thread):
                 waitTime = self.events[0]["time"] - time.time()
             else:
                 waitTime = PooferFiringThread.TIMEOUT
-            
+           
             try:
-                cmd = cmdQueue.get(True, waitTime)
+                cmd = self.cmdQueue.get(True, waitTime)
+                logger.debug("Received Message on cmd queue!")
                 # parse message. If this is a request to do a flame sequence,
                 # set up poofer events, ordered by time. Event["time"] attribute
                 # should be current time (time.time()) plus the relative time from
@@ -186,8 +188,7 @@ class PooferFiringThread(Thread):
                 # this is just a timeout - completely expected. Run the loop
                 pass
             except Exception:
-                # log this... Not expected!
-                pass
+                logger.exception("Unexpected exception processing command queue!") 
                 
                 
                 
