@@ -14,7 +14,6 @@ def init(port):
     websocket = WebsocketServer(port, '0.0.0.0')
     websocketThread = Thread(target=websocket.serve_forever)
     
-    #websocket.serve_forever() 
     event_manager.addListener(handleMsg)
     
 def shutdown():
@@ -38,7 +37,7 @@ if __name__ == "__main__":
     
         event_manager.init()
         mock_event_producer.init()
-        init(9001)
+        init(5001)
         
         while(True):
             time.sleep(10)
