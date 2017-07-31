@@ -40,6 +40,7 @@ def init():
     
 def shutdown():
     global eventThread
+    global eventHandlers
     if eventThread:
         logger.info("Event Manager Shutdown")
         eventThread.shutdown()

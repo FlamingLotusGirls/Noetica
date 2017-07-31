@@ -25,5 +25,34 @@ def shutdown():
         websocket = None
 
 def handleMsg(msg):
-    websocket.send_to_all(msg)
+    websocket.send_message_to_all(msg)
+    
+
+if __name__ == "__main__":
+    import mock_event_producer
+    import time
+    
+    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
+
+    try:
+    
+        event_manager.init()
+        mock_event_producer.init()
+        init(9001)
+        
+        while(True):
+            time.sleep(10)
+   
+    except Exception as e:
+        print "Exception occurs!", e
+        mock_event_producer.shutdown()
+        event_manager.shutdown()
+        shutdown()
+    except KeyboardInterrupt:
+        print "Keyboard Interrupt!"
+        event_manager.shutdown()
+        mock_event_producer.shutdown()
+        shutdown()
+
+
     
