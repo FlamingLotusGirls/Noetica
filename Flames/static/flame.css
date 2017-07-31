@@ -8,7 +8,7 @@ body {
   height: 100%;
   width: 100%;
   margin: 0;
-  padding: 1em;
+  padding: 0;
 }
 .inverted {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
@@ -30,13 +30,13 @@ body {
 .flame-container {
   display: flex;
   width: 60%;
+  padding: 2em;
 }
 .hydraulics-container {
   display: flex;
   flex-direction: column;
-  width: 40%;
   border-left: 1px solid black;
-  padding-left: 2em;
+  padding: 2em;
 }
 .poofer-display td {
   text-align: center;
@@ -86,7 +86,9 @@ body {
 .hydraulics-attract-file-picker {
   list-style: none;
   border: 1px solid black;
-  padding: 1em;
+  padding: 2px;
+  height: 6em;
+  overflow-x: scroll;
 }
 .hydraulics-attract-file {
   background-color: #ffffff;
