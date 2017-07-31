@@ -1,15 +1,29 @@
-import logging
-from threading import Lock
-import sys
-import poofermapping
-import logging
-import json
 import copy
+import json
+import logging
+from operator import itemgetter
+import os
+import sys
+from threading import Lock
+from shutil import copyfile
+import unittest
+
+import poofermapping
+
+''' Handles creation-deletion-modification-retrieval (and permanent save) of flame effect
+sequences, aka patterns. A pattern is defined to have the following format:
+  {"name":<patternName>, "modifyable":[True|False],
+    "events":[eventList]}
+where each event has the format:
+    {"duration":<duration, int milliseconds>, "startTime":<startTime, in ms from start of sequence>
+     "ids:[poofer_ids]}
+poofer_ids are strings that name the 25 unique poofers. These strings can be found in 
+poofermapping.py
+'''
 
 gPatterns = list()
 patternLock = Lock()
 patternFileName = None
-
 
 logger = logging.getLogger('flames')
 
@@ -17,6 +31,15 @@ def init(flameEffectsFile="./sequences.json"):
     global patternFileName
     
     logger.info("Pattern Manager Init, sequence file {}".format(flameEffectsFile))
+    try: 
+        _loadPatternFile(flameEffectsFile)
+    except Exception:
+        logger.exception("Unexpected error initializing pattern manager")
+
+def _loadPatternFile(flameEffectsFile):
+    global patternFileName
+    global gPatterns 
+    gPatterns = list()
     patternFileName = flameEffectsFile
     patternNames = list()
     try:
@@ -33,8 +56,6 @@ def init(flameEffectsFile="./sequences.json"):
                     logger.warn("Pattern name {} used twice".format(pattern['name']))
     except ValueError:
         logger.exception("Bad JSON in pattern file")
-    except Exception:
-        logger.exception("Unexpected error initializing pattern manager")
         
 def shutdown():
     pass
@@ -105,7 +126,7 @@ def addOrModifyPattern(newPattern):
         
 def addPattern(newPattern): 
     if not _validatePattern(newPattern):
-        log.warn("Pattern {} does nto validate, will not add".format(pattern['name']))
+        log.warn("Pattern {} does not validate, will not add".format(pattern['name']))
         return 
         
     patternLock.acquire()
@@ -122,8 +143,9 @@ def addPattern(newPattern):
     
 def modifyPattern(newPattern): 
     if not _validatePattern(newPattern):
-        log.warn("Pattern {} does nto validate, will not modify".format(pattern['name']))
+        log.warn("Pattern {} does not validate, will not modify".format(pattern['name']))
         return 
+        
     patternLock.acquire()
     patternName = newPattern['name']
     foundPattern = None
@@ -131,6 +153,7 @@ def modifyPattern(newPattern):
         if pattern['name'] == patternName:
             foundPattern = pattern
             break
+
     if not foundPattern:
         logger.warning("Could not find existing pattern {}, will not modify".format(patternName))
     elif foundPattern["modifiable"] != True:
@@ -156,36 +179,99 @@ def savePatterns(filename=None):
         filename = patternFileName
     with open(filename, 'w') as f: # open write 
         json.dump(gPatterns, f)
+        
+def patternsEqual(pat1, pat2): 
+    if pat1["name"] != pat2["name"]:
+        return False
+    if pat1["modifiable"] != pat2["modifiable"]:
+        return False
+    
+    if len(pat1["events"]) != len(pat2["events"]):
+        return False
+        
+    pat1["events"].sort(key=itemgetter("startTime"))
+    pat2["events"].sort(key=itemgetter("startTime"))
+    for i in range(len(pat1["events"])):
+        event1 = pat1["events"][i]
+        event2 = pat2["events"][i]
+        if (event1["startTime"] != event2["startTime"]):
+            return False
+        if (event1["duration"] != event2["duration"]):
+            return False
+        for id in event1["ids"]:
+            if not id in event2["ids"]:
+                return False
+        
+        if len(event1["ids"]) != len(event2["ids"]):
+            return False
+
+    return True
+        
+class PatternTests(unittest.TestCase):
+    def setUp(self):
+        logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
+        self.pattern_file = "pattern_test.json"
+        self.temp_file = "pattern_test_tmp.json"
+        _loadPatternFile(self.pattern_file)
+        
+    def test_getPattern(self):
+        pattern = getPattern("Top")
+        self.assertTrue(pattern != None)
+        
+    def test_modifyPattern(self):
+        pattern = getPattern("Bottom")
+        
+        modifiedPattern = copy.deepcopy(pattern)
+        savedPattern    = copy.deepcopy(pattern)
+        modifiedPattern["events"][0]["duration"] = 4000
+        modifyPattern(modifiedPattern)
+        
+        
+        modifiedPattern = getPattern("Bottom")
+        self.assertEquals(modifiedPattern["name"], savedPattern["name"])
+        self.assertEquals(len(modifiedPattern["events"]), len(savedPattern["events"]))
+        self.assertEquals(modifiedPattern["events"][0]["duration"], 4000)
+        self.assertEquals(modifiedPattern["events"][0]["startTime"], savedPattern["events"][0]["startTime"])   
+        
+    def test_addPattern(self): 
+        pattern = getPattern("Custom")
+        self.assertEquals(pattern, None)
+        pattern = {"modifiable": True, "name": "Custom", 
+                    "events": [{"duration": 2000, "ids": ["NE", "NW"], "startTime": 0}, 
+                               {"duration": 2000, "ids": ["NE", "NW"], "startTime": 4000}]}
+        addPattern(pattern)
+        addedPattern = getPattern("Custom")
+        
+        self.assertTrue(patternsEqual(pattern, addedPattern))
+        
+    def test_deletePattern(self):
+        pattern = getPattern("Top")
+        self.assertTrue(pattern != None)
+        deletePattern("Top")
+        pattern = getPattern("Top")
+        self.assertTrue(pattern == None)
+        
+    def test_savePattern(self): 
+        copyfile(self.pattern_file, self.temp_file)
+        _loadPatternFile(self.temp_file)
+        newPattern = {"modifiable": True, "name": "New Pattern", 
+                "events": [{"duration": 2000, "ids": ["NE", "NW"], "startTime": 0}, 
+                           {"duration": 2000, "ids": ["NE", "NW"], "startTime": 4000}]}
+        addPattern(newPattern)
+        savePatterns()
+        _loadPatternFile(self.temp_file)
+        restoredPattern = getPattern("New Pattern")
+        self.assertFalse(restoredPattern == None)  
+        self.assertTrue(patternsEqual(restoredPattern, newPattern)) 
+        os.remove(self.temp_file)   
+
+
+    def tearDown(self):
+        pass
     
 if __name__ == '__main__':
-    print "pattern manager!"
-    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
-    if len(sys.argv) > 1:
-        pattern_file = sys.argv[1]
-    else:
-        pattern_file = "pattern_test.json"
-        
-    init(pattern_file)
-    
-    pattern = getPattern("Bottom")
-    modifiedPattern = copy.deepcopy(pattern)
-    modifiedPattern["events"][0]["duration"] = 4000
-    print "Original Pattern: ", pattern
-    print "Modified Pattern: ", modifiedPattern
-    modifyPattern(modifiedPattern)
-    print "Original Pattern, modified", pattern
-    addPattern({"modifiable": True, "name": "Custom", 
-                "events": [{"duration": 2000, "ids": ["NE", "NW"], "startTime": 0}, 
-                           {"duration": 2000, "ids": ["NE", "NW"], "startTime": 4000}]})
-    addPattern({"modifiable": True, "name": "NE", 
-                "events": [{"duration": 2000, "ids": ["NE", "NW"], "startTime": 0}, 
-                           {"duration": 2000, "ids": ["NE", "NW"], "startTime": 4000}]})
-    savePatterns("pattern_test_output.json")
-    deletePattern("Custom")
-    savePatterns("pattern_test_output_2.json")
+    unittest.main()
 
-  
-    
     
         
     
