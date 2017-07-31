@@ -93,7 +93,7 @@ def _verifyTriggerParamsObject(triggerParamsObject):
         # I'm going to punt on checking for it. The code will not crash without it.    
         return True
     except KeyError:
-        log.exception("Malformed trigger parameter")
+        logger.exception("Malformed trigger parameter")
         return False
        
 class TriggerManager(Thread): 
@@ -207,7 +207,7 @@ class TriggerObject():
         self.pointTarget = 0 # target is first point
         self.lastTriggerPointTime = 0
         self.lingerTime = 0  # wall time - linger until this time
-        print "INIT trigger object!!"
+        logger.info("INIT trigger object {}".format(name))
         
     def enable(self, bEnable):
         if bEnable:
@@ -231,6 +231,8 @@ class TriggerObject():
         self.lingerTime = 0
     
     def processSculpturePosition(self, position):
+#        print "Received position, ", position
+#        print "State is ", self.state
         if self.state == DISABLED:
             return
         
@@ -243,13 +245,15 @@ class TriggerObject():
                 # is there a flame effect associated?
                 if "flameEffect" in self.points[self.pointTarget]: 
                     flames_controller.doFlameEffect(self.points[self.pointTarget]["flameEffect"])
-                    log.info("Flame effect sequence {} called!".format(self.points[self.pointTarget]["flameEffect"]))
+                    logger.info("Flame effect sequence {} called!".format(self.points[self.pointTarget]["flameEffect"]))
                     
                 if (len(self.points) > (self.pointTarget+1)):  # go to next point in sequence
+                    logger.debug("Trigger {} going to next point ({})".format(self.name, self.pointTarget+1))
                     self.pointTarget = self.pointTarget + 1
                     self.state = LOOKING
                     self.lastTriggerPointTime = currentTime
                 else: # end of trigger sequence. Back to the looking for the first point
+                    logger.debug("End of trigger {}".format(self.name))
                     self._restartTrigger()
                     return
             else:
@@ -258,7 +262,8 @@ class TriggerObject():
 
         elif self.state == LOOKING:
             # Check whether time has expired
-            if self.pointTarget != 0 and currentTime > self.transitTime:
+            if self.pointTarget != 0 and (currentTime > (self.lastTriggerPointTime + targetPoint["transitTime"])):
+                logger.debug("Restarting trigger {}".format(self.name))
                 self._restartTrigger()
                 return
                 
@@ -266,10 +271,12 @@ class TriggerObject():
             if TriggerObject._inEnvelopeRadius(targetPoint, position):
                 # got there. Change state...
                 if targetPoint["type"] == "linger":
+                    logger.debug("Trigger {} got to point ({}). Will linger".format(self.name, self.pointTarget))
                     self.state = LINGERING
                     self.lingerTime = currentTime + targetPoint["lingerTime"]
                 else: # passthrough case
                     if "flameEffect" in targetPoint: 
+                        logger.info("Trigger {} calling for flame effect {}".format(self.name, targetPoint["flameEffect"]))
                         flames_controller.doFlameEffect(targetPoint["flameEffect"])
                     self.state = LOOKING
                     self.pointTarget = self.pointTarget + 1
@@ -291,12 +298,12 @@ class TriggerObject():
         
     @staticmethod
     def _inEnvelopeSausage(targetA, targetB, testPoint):
-        if _inEnvelopeRadius(targetA, testPoint):
+        if TriggerObject._inEnvelopeRadius(targetA, testPoint):
             return True
         if TriggerObject._inEnvelopeRadius(targetB, testPoint):
             return True
             
-        return _distanceToLineSegment(targetA, targetB, testPoint) <= ENVELOPE_SIZE^2
+        return TriggerObject._distanceToLineSegment(targetA, targetB, testPoint) <= ENVELOPE_SIZE^2
         
     @staticmethod
     def _distanceToLineSegment(targetA, targetB, testPoint): 

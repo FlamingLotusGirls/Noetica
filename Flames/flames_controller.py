@@ -1,12 +1,24 @@
-''' And the flame effects connector code looks something like this: '''
+'''Flame controller. Responsible for high-level management of flame effects. All objects 
+or modules wanting to know the status of poofers or sequences should call into this module.
+Similarly, all objects or modules wanting to change the status of poofers or sequences -
+including running a sequence - should call into this module.
+
+Mediates with the low-level flames_drv via a message Queue (flameQueue, for pushing
+commands to the low level code) and event listener (for receiving events created by the
+flames driver)'''
+
 import Queue
 import json
 import logging
 from threading import Thread
 from threading import Lock
 from websocket_server import WebsocketServer
+import mock_event_producer as mockDriver
 import event_manager
 import pattern_manager
+
+
+# XXX - FIXME - need to actually listen for events! Create a mock event producer 
 
 logger = logging.getLogger("flames")
 
@@ -15,17 +27,15 @@ disabledPoofers = list()
 globalEnable = True
 disabledFlameEffects = list()
 activeFlameEffects = list()
-stateThread = None
-stateLock   = None
+gUseDriver = False
 
 
-def init(flameQueue):
+def init(flameQueue, useDriver=True):
     global cmdQueue
-    global stateThread
-    global stateLock 
+    global gUseDriver
     logger.info("Flame Controller Init")
-    stateLock = Lock()
     cmdQueue = flameQueue
+    gUseDriver = useDriver
 
     event_manager.addListener(eventHandler)
 
@@ -68,14 +78,20 @@ def isFlameEffectEnabled(flameEffectName):
 def disablePoofer(pooferId):
     if not pooferId in disabledPoofers:
         disabledPoofers.append(pooferId)
-        flameEffectMsg = {"type":"pooferDisable", "name":pooferId}
-        cmdQueue.put(json.dumps(flameEffectMsg))
+        if gUseDriver:
+            flameEffectMsg = {"type":"pooferDisable", "name":pooferId}
+            cmdQueue.put(json.dumps(flameEffectMsg))
+        else:
+            mockDriver.disablePoofer(pooferId)
 
 def enablePoofer(pooferId):
     if pooferId in disabledPoofers:
         disabledPoofers.remove(pooferId)
-        flameEffectMsg = {"type":"pooferEnable", "name":pooferId}
-        cmdQueue.put(json.dumps(flameEffectMsg))
+        if gUseDriver:
+            flameEffectMsg = {"type":"pooferEnable", "name":pooferId}
+            cmdQueue.put(json.dumps(flameEffectMsg))
+        else:
+            mockDriver.enablePoofer(pooferId)
         
 def isPooferEnabled(pooferId):
     return not (pooferId in disabledPoofers)
