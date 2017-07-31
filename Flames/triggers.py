@@ -123,6 +123,7 @@ class TriggerManager(Thread):
                 
     def run(self):
         self.running = True
+        msg = ""
         while self.running:
             try:
                 if not self.socketInit:
@@ -131,21 +132,25 @@ class TriggerManager(Thread):
                     logger.info("Connected to hydraulics socket")
                 
                 # listen for message on queue
-                msg = self.hydraulics_socket.recv(32)
-                if len(msg) <= 0:
+                msgFrag = self.hydraulics_socket.recv(32)
+                if len(msgFrag) <= 0:
                     logger.warn("0 bytes received on trigger thread, disconnecting")  
                     #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
                     self.hydraulics_socket.close()
                     self.socketInit = False
                     continue
-                    
-                #print 'received message on position socket', msg
-                    
-                msgObj = json.loads(msg) # XXX and what happens on exception here?            
                 
-                # got message, hand to objects
-                for trigger in self.triggerList:
-                    trigger.processSculpturePosition(msgObj)
+                msg = msg + str(msgFrag)                    
+                eomIdx = msg.find("\n")
+                while (eomIdx >= 0) :
+                    cmd = msg[:eomIdx]
+                    cmdObj = json.loads(cmd)
+                    # got message, hand to objects
+                    for trigger in self.triggerList:
+                        trigger.processSculpturePosition(cmdObj)
+                    msg = msg[eomIdx+1:]
+                    eomIdx = msg.find("\n")
+                
             except socket.error, (value, message):
                 if value != 61: # connection refused, common
                     logger.exception("Socket error {}".format(message))

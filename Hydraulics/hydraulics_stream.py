@@ -1,10 +1,12 @@
 ''' Set up socket to listen on known port. If we get a connection, attach and spin off
 thread to send hydraulic data'''
 
+import json
 from threading import Thread, Lock
 import socket
 import logging
 import Queue
+import event_manager
 
 hydraulics_connection_manager = None
 logger = logging.getLogger('hydraulics')
@@ -15,12 +17,19 @@ def init(port):
     logger.info("Hydraulics stream init, port {}".format(port))
     hydraulics_connection_manager = HydraulicsConnectionManager(port)
     hydraulics_connection_manager.start()
+    event_manager.addListener(messageHandler, "pos")
     
 def shutdown():
+    logger.info("Hydraulics stream shutdown")
     hydraulics_connection_manager.stop()
     
-def sendMessage(message):
-    hydraulics_connection_manager.queueMessage(message)
+def messageHandler(message):
+    # format for output...
+    newMessage = {"x":message["x"], "y":message["y"], "z":message["z"]}
+    hydraulics_connection_manager.queueMessage(newMessage)
+    
+#def sendMessage(message):
+#    hydraulics_connection_manager.queueMessage(message)
 
 
 class HydraulicsConnectionManager(Thread):
@@ -51,7 +60,7 @@ class HydraulicsConnectionManager(Thread):
                 self.hydraulics_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 self.hydraulics_socket.bind(("0.0.0.0", self.port))
                 logger.info("bind to {}:{}".format(socket.gethostname(), self.port))
-                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR?
+                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR? FIXME
                 self.hydraulics_socket.listen(5)  # really should only ever be one or two connection requests
 
                 # use socket
@@ -62,6 +71,7 @@ class HydraulicsConnectionManager(Thread):
                     except socket.timeout:
                         continue
                         
+                    logger.debug("stream socket accept")
                     hydraulics_stream_thread = PositionStreamer(clientsocket, self)
                     self.threadLock.acquire()
                     self.threads.append(hydraulics_stream_thread)
@@ -76,6 +86,7 @@ class HydraulicsConnectionManager(Thread):
                 self.hydraulics_socket.close()
                 self.hydraulics_socket = None
                 pass
+                
             
     def stop(self):
         self.running = False
@@ -111,6 +122,8 @@ class PositionStreamer(Thread):
             try:
                 # Check for message from the hydraulics system. If you find one, send it
                 msg = self.messageFifo.get(timeout=1.0)
+                msg = json.dumps(msg)
+                msg = msg + "\n"
                 sentBytes = 0
                 msgLen = len(msg)
                 while sentBytes < msgLen:

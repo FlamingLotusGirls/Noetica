@@ -20,7 +20,8 @@ import traceback
 import logging
 
 import hydraulics_playback
-import hydraulics_stream
+#import hydraulics_stream
+import event_manager
 
 adc = [0,0,0,0,0,0,0,0]
 mA  = [0,0,0,0,0,0,0,0]
@@ -73,6 +74,13 @@ def setTestOutputs(x, y, z):
     test_output_x = x
     test_output_y = y
     test_output_z = z
+    
+def attractModeEnable(tf):
+    global attractModeEnabled
+    attractModeEnabled = tf
+
+def isAttractModeEnabled():
+    return attractModeEnabled
 
 def getCurrentInput():
     return adc[0], adc[1], adc[2]     # I don't care about extremely intermittent erroneous values here, so no mutex lock
@@ -202,10 +210,11 @@ class four_20mA_IO_Thread(Thread):
 #                    print "Reading %d = %0.2f VDC" % (index+1,((float)(VDC[index]))/Scaler)
                 ''' send sculpture position information to whoever is listening '''
                 if self.state == TEST:
-                    x,y,z = hydraulics_playback.getPlaybackData()
-                    hydraulics_stream.sendMessage(json.dumps({"x":x, "y":y, "z":z}))
+                    x,y,z = hydraulics_playback.getPlaybackData()  # test state: send from playback data
+                    event_manager.postEvent({"msgType":"pos", "x":x, "y":y, "z":z, "xx":x, "yy":y, "zz":z})
                 else:          
-                    hydraulics_stream.sendMessage(json.dumps({"x":VDC[4], "y":VDC[5], "z":VDC[6]}))
+                    event_manager.postEvent({"msgType":"pos", "x":mA[0], "y":mA[1], "z":mA[2],
+                                                    "         xx":VDC[4], "yy":VDC[5], "zz":VDC[6]})
                 # XXX - I need to be able to test this without the outputs hooked up!!!
                 '''  Write to outputs '''
                 if (self.state == PASSTHROUGH): 
