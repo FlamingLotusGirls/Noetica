@@ -10,6 +10,7 @@ import hydraulics_drv
 import hydraulics_playback
 import hydraulics_webserver
 import hydraulics_stream
+import event_manager
 
 # default parameters - configuration file overrides
 HTTP_PORT = 9000 
@@ -41,6 +42,9 @@ if __name__ == '__main__':
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
+        # initialize event manager
+        event_manager.init()
+        
         # setup position streamer - XXX should be in own process
         hydraulics_stream.init(POSITION_PORT)
 
@@ -63,3 +67,4 @@ if __name__ == '__main__':
 
     hydraulics_drv.shutdown()
     hydraulics_stream.shutdown()
+    event_manager.shutdown()
