@@ -16,10 +16,14 @@ Each individual object within the file has the following format:
 from threading import Thread
 import json
 import logging
-import time
+import select
 import socket
 import sys
+import time
+import unittest
+
 import flames_controller
+
 
 triggerList = list()
 triggerThread = None
@@ -29,7 +33,7 @@ logger = logging.getLogger('triggers')
 
 def init(triggerFile, addr, port):
     global triggerThread
-    logger.info("Trigger Init, trigger file {}, listing at {}:{}".format(triggerFile, addr, port))
+    logger.info("Trigger Init, trigger file {}, listening at {}:{}".format(triggerFile, addr, port))
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f) 
@@ -40,9 +44,10 @@ def init(triggerFile, addr, port):
         logger.exception("Exception initializing triggers!")
         
 def shutdown():
-    logger.debug("Trigger Shutdown")
+    logger.info("Trigger Shutdown")
     global triggerThread
     if triggerThread != None:
+        logger.info("...Joining trigger thread")
         triggerThread.stop()
         triggerThread.join()
     triggerThread = None
@@ -132,13 +137,17 @@ class TriggerManager(Thread):
                     logger.info("Connected to hydraulics socket")
                 
                 # listen for message on queue
-                msgFrag = self.hydraulics_socket.recv(32)
-                if len(msgFrag) <= 0:
-                    logger.warn("0 bytes received on trigger thread, disconnecting")  
-                    #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
-                    self.hydraulics_socket.close()
-                    self.socketInit = False
-                    continue
+                ready = select.select([self.hydraulics_socket], [], [], 2.0)
+                if ready[0]:                
+                    msgFrag = self.hydraulics_socket.recv(32)
+                    if len(msgFrag) <= 0:
+                        logger.warn("0 bytes received on trigger thread, disconnecting")  
+                        #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
+                        self.hydraulics_socket.close()
+                        self.socketInit = False
+                        continue
+                else:
+                    continue # XXX check for errors....
                 
                 msg = msg + str(msgFrag)                    
                 eomIdx = msg.find("\n")
@@ -329,20 +338,128 @@ class TriggerObject():
     
         return (x - testPoint["x"])^2 + (y - testPoint["y"])^2 + (z - testPoint["z"])^2
         
-if __name__ == '__main__':  # for testing - this is part of the flame effects process!
-    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(message)s', level=logging.DEBUG)
-    try:            
-        if len(sys.argv) > 1:
-            initFile = sys.argv[1]
-        else:
-            initFile = "./triggers.json"
-            
-        init(initFile, "127.0.0.1", 9001)
-        while True:
-            time.sleep(4)
-    except KeyboardInterrupt:
-        print "Ctl-C detected"
+theTriggerTest = None
+def triggerTestEventListenerWrapper(msg):
+    print ("EVENT HANDLER CALLED")
+    theTriggerTest.eventListener(msg)
+    
+class TriggerTests(unittest.TestCase):
+    def setUp(self):
+        global theTriggerTest
+        theTriggerTest = self
+        self.sequenceDesired = None
+        self.triggered = False
         
-    print "CALLING SHUTDOWN"
-    shutdown() 
+    def tearDown(self):
+        hydraulics.hydraulics_playback.shutdown()
+        hydraulics.hydraulics_drv.shutdown()
+        hydraulics.hydraulics_stream.shutdown()
+        hydraulics.event_manager.shutdown()
+        
+        shutdown()
+        flames_controller.shutdown()
+        event_manager.shutdown()
+        flames_drv.shutdown()
+        pattern_manager.shutdown()
+
+    def initTest(self, triggerFile, playbackDirectory, playbackName, sequenceFile, pollInterval=1000):
+        # start up the hydraulics sytem
+        hydraulics.event_manager.init()
+        hydraulics.hydraulics_stream.init(5001)
+        hydraulics.hydraulics_drv.init(pollInterval, hydraulics.hydraulics_drv.TEST)
+        hydraulics.hydraulics_playback.init(playbackDirectory, playbackName)    
+        
+        # start up the flame system
+        pattern_manager.init(sequenceFile)
+        pooferCommandQueue = Queue.Queue()
+        flames_drv.init(pooferCommandQueue)
+        event_manager.init()
+        flames_controller.init(pooferCommandQueue)
+        init(triggerFile, "localhost", 5001)
+        event_manager.addListener(triggerTestEventListenerWrapper, "sequence_start")
+               
+    def setSequenceToListenFor(self, sequenceName):
+        self.sequenceDesired = sequenceName
+        
+    def eventListener(self, msg):
+        logger.info("Received event, {}".format(msg))
+        if (msg["msgType"] == "sequence_start" and 
+            msg["id"] == self.sequenceDesired):
+            self.triggered = True
+        
+    def test_SingleLinger(self):
+        print ("SINGLE LINGER TEST!!!")
+        self.initTest("./trigger_tests/single_linger_trigger.json", 
+                 "../Hydraulics/playback_tests",
+                 "linger_test","test_sequences.json")
+        self.setSequenceToListenFor("Top")
+        time.sleep(10)
+        self.assertTrue(self.triggered)
+        
+    def test_PointToPoint(self):
+        print ("POINT TO POINT TEST!!!")
+        self.initTest("./trigger_tests/point_to_point_trigger.json", 
+                 "../Hydraulics/playback_tests",
+                 "point_to_point_test","test_sequences.json")
+        self.setSequenceToListenFor("Bottom")
+        time.sleep(13)
+        self.assertTrue(self.triggered)
+    
+    def test_PassthroughPoint(self):
+        print ("PASSTHROUGH TEST!!!")
+        self.initTest("./trigger_tests/passthrough_trigger.json", 
+                 "../Hydraulics/playback_tests",
+                 "passthrough_test","test_sequences.json")
+        self.setSequenceToListenFor("Top")
+        time.sleep(13)
+        self.assertTrue(self.triggered)
+#     
+#     def test_SingleLingerNeverHitPoint(self):
+#         self.initTest("./trigger_tests/single_linger_trigger.json", 
+#                  "../Hydraulics/playback_tests",
+#                  "linger_test_no_go","test_sequences.json")
+#         self.setSequenceToListenFor("Top")
+#         time.sleep(10)
+#         self.assertFalse(self.triggered)
+#     
+#     def test_SingleLingerTooShortLinger(self):
+#         self.initTest("./trigger_tests/single_linger_trigger.json", 
+#                  "../Hydraulics/playback_tests",
+#                  "linger_test_too_short","test_sequences.json")
+#         self.setSequenceToListenFor("Top")
+#         time.sleep(10)
+#         self.assertFalse(self.triggered)
+#         
+#     def test_PointToPointTooSlow(self):
+#         self.initTest("./trigger_tests/point_to_point_trigger.json", 
+#                  "../Hydraulics/playback_tests",
+#                  "point_to_point_too_slow","test_sequences.json")
+#         self.setSequenceToListenFor("Bottom")
+#         time.sleep(10)
+#         assertFalse(self.triggered)
+#         
+#     def test_PointToPointOutsideLines(self):
+#         self.initTest("./trigger_tests/point_to_point_trigger.json", 
+#                  "../Hydraulics/playback_tests",
+#                  "point_to_point_outside_lines","test_sequences.json")
+#         self.setSequenceToListenFor("Bottom")
+#         time.sleep(10)
+#         self.assertFalse(self.triggered)
+
+
+        
+if __name__ == '__main__':  
+    import sys
+    import Queue
+    sys.path.append('../Hydraulics') # XXX could create a NOETICA_HOME environment variable
+    import hydraulics
+    import event_manager
+    import pattern_manager
+    import flames_drv
+    import flames_controller
+    
+    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
+
+    unittest.main()
+
         

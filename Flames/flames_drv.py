@@ -63,6 +63,7 @@ from threading import Thread
 import Queue
 import json
 import logging
+import event_manager
 from poofermapping import mappings as pooferMapping
 import pattern_manager
 
@@ -141,8 +142,11 @@ def init(cmdQueue):
     
 def shutdown():
     global pooferFiringThread
+    logger.info("Flame driver shutdown()")
     if pooferFiringThread != None:
+        logger.info("...Joining flame driver thread")
         pooferFiringThread.shutdown()
+        pooferFiringThread.join()
         pooferFiringThread = None
     
 class PooferFiringThread(Thread):
@@ -179,10 +183,14 @@ class PooferFiringThread(Thread):
                 # the start of the sequence
                 msgObj = json.loads(cmd)
                 type = msgObj["type"]
-                if type == "flameEffectStart" and checkSequence(msgObj):
-                    # figure out firing sequence associated with the name, set
-                    # up poofer events
-                    pass
+                logger.debug("message is {}".format(msgObj))
+                if type == "flameEffectStart":
+                    # figure out firing sequence associated with the name
+                    sequence = pattern_manager.getPattern(msgObj["name"])
+                    if self.checkSequence(msgObj):
+                        # set up poofer events
+                        pass
+                    event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
                 # else - whatever other type of event you want to process ...
             except Queue.Empty:
                 # this is just a timeout - completely expected. Run the loop
@@ -252,6 +260,7 @@ class PooferFiringThread(Thread):
     def checkSequence(self, firingSequence):
         #debug
         print ("starting checkSequence")
+        return True # XXX need to short circuit this for now
         try:
             #exception if firingSequence does not have more steps in it than the upper limit
             if len(firingSequence) > maxFiringSequenceSteps:

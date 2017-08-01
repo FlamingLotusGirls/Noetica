@@ -32,17 +32,17 @@ def enablePoofer(pooferName):
 def disablePoofer(pooferName):
     event_manager.postEvent({"type":"poofer_disabled", "id":pooferName})
     
-def patternStart(patternName):
-    event_manager.postEvent({"type":"pattern_start", "id":patternName})
+def sequenceStart(sequenceName):
+    event_manager.postEvent({"type":"sequence_start", "id":sequenceName})
 
-def patternStop(patternName):
-    event_manager.postEvent({"type":"pattern_stop", "id":patternName})
+def sequenceStop(sequenceName):
+    event_manager.postEvent({"type":"sequence_stop", "id":sequenceName})
 
-def patternEnabled(patternName):
-    event_manager.postEvent({"type":"pattern_enabled", "id":patternName})
+def sequenceEnabled(sequenceName):
+    event_manager.postEvent({"type":"sequence_enabled", "id":sequenceName})
 
-def patternDisabled(patternName):
-    event_manager.postEvent({"type":"pattern_disabled", "id":patternName})
+def sequenceDisabled(sequenceName):
+    event_manager.postEvent({"type":"sequence_disabled", "id":sequenceName})
     
 def fireRandomPoofers():
     global gFiringThread

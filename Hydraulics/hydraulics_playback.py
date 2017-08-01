@@ -21,10 +21,12 @@ currentPlayback = None
 # XXX - should the playback file specify the interval in which it is expected to run? Probably...
 logger = logging.getLogger('playback')
 
-def init(playbackDirectory=playbackDir):
+def init(playbackDirectory=playbackDir, playbackName=None):
     global playbackDir
-    logger.info("Hydraulics playback init, playback dir {}".format(playbackDirectory))
+    global currentPlayback
+    logger.info("Hydraulics playback init, playback dir {}, file {}".format(playbackDirectory, playbackName))
     playbackDir = playbackDirectory
+    currentPlayback = None
     try: 
         # look at directory containing playback files. Read into an array
         global playbackList
@@ -46,11 +48,16 @@ def init(playbackDirectory=playbackDir):
         for fileName in badFiles:
             playbackList.remove(fileName)
         
-        #print playbackList
-        if len(playbackList) > 0:
+        if playbackName != None and playbackName in playbackList:
+            setCurrentPlayback(playbackName)
+            
+        if currentPlayback == None and len(playbackList) > 0:
             setCurrentPlayback(playbackList[0])
-    except Exception as e:
-        print ('Error initializing playback', e)
+    except Exception:
+        logger.exception('Error initializing playback')
+        
+def shutdown():
+    logger.info("Hydraulics playback shutdown")
         
 def getList():
     ''' Return list of all available recorded sequences (playbacks)'''
@@ -71,12 +78,15 @@ def setCurrentPlayback(playbackName):
     of the playback'''
     global playbackData
     global currentPlayback
-    if not playbackName in playbackList:
-        return # XXX throw exception
-    with open(playbackDir + playbackName + ".rec") as f:
-        playbackData = map(int, f)
-    playbackDataIdx = 0
-    currentPlayback = playbackName
+    try:
+        if not playbackName in playbackList:
+            return # XXX throw exception
+        with open(playbackDir + "/" + playbackName + ".rec") as f:
+            playbackData = map(int, f)
+        playbackDataIdx = 0
+        currentPlayback = playbackName
+    except IOError:
+        logger.warn("Playback file {} not found".format(playbackName))
 
 def getCurrentPlayback():
     ''' Get name of current playback'''

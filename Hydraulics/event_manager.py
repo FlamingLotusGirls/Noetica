@@ -6,7 +6,7 @@ import Queue
 logger = logging.getLogger("events")
 
 '''
- {"event":{"type": ["spos"|
+ {"event":{"msgType": ["spos"|
                      "cpos"|
                      "mode_change"],
                      "x":<x>, "y":<y>, "z":<z>, :mode":<mode>'''
@@ -18,29 +18,35 @@ logger = logging.getLogger("events")
 eventThread = None
 eventQueue  = None
 eventHandlers = list()
+bDoneInit = False
 
 def init():
     global eventThread
     global eventQueue
     logger.info("Event Manager Init")
-    eventQueue = Queue.Queue()
-    eventThread = EventManagerThread(eventQueue)
-    eventThread.start()
+    if eventThread == None:
+        eventQueue = Queue.Queue()
+        eventThread = EventManagerThread(eventQueue)
+        eventThread.start()
     
 def shutdown():
     global eventThread
-    if eventThread:
-        logger.info("Event Manager Shutdown")
+    global eventHandlers
+    logger.info("Event Manager Shutdown")
+    if eventThread != None:
+        logger.info("...Joining event thread")
         eventThread.shutdown()
         eventThread.join()
         eventThread = None
     eventHandlers = list()
     
 def postEvent(event):
-#    eventQueue.put(json.dumps(event))
     eventQueue.put(event)
     
-def addListener(eventHandler, msgType):
+def addListener(eventHandler, msgType=None):
+    if not callable(eventHandler):
+        logger.warning("Add listener called with invalid eventHandler")
+        return
     eventHandlers.append({"handler": eventHandler, "msgType":msgType})
     
 def removeListener(eventHandler):
@@ -58,16 +64,18 @@ class EventManagerThread(Thread):
         while (self.running):
             try:
                 msg = self.eventQueue.get(True, 1) # 1 second timeout
-                logger.debug("received event {}".format(msg))
+#                logger.debug("received event {}".format(msg))
                 msgType = msg["msgType"]
                 for eventHandler in eventHandlers:
-                    if msgType == eventHandler["msgType"] or msgType in eventHandler["msgType"]:
+                    if ((eventHandler["msgType"] == None) or 
+                        (eventHandler["msgType"] == msgType) or 
+                        (msgType in eventHandler["msgType"])):
                         eventHandler["handler"](msg)
             except Queue.Empty:
                 # just timeout, completely expected
                 pass
             except Exception:
-                logger.exception("Unexpected exception in flame broadcast thread")
+                logger.exception("Unexpected exception in event manager thread")
                         
     def shutdown(self):
         self.running = False

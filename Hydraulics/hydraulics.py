@@ -16,7 +16,8 @@ import event_manager
 HTTP_PORT = 9000 
 POSITION_PORT = 9001
 HYDRAULICS_POLL_INTERVAL = 200  # hardware poll interval, in ms
-PLAYBACK_DIR = "/home/flaming/Noetica/Hydraulics/playbacks/"
+PLAYBACK_DIR = "playbacks/"
+HOME_DIR = "/home/flaming/Noetica/"
 
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
@@ -38,6 +39,7 @@ if __name__ == '__main__':
         POSITION_PORT = int(configParser.get("hydraulics", "streamPort", POSITION_PORT))
         HYDRAULICS_POLL_INTERVAL = int(configParser.get("hydraulics", "pollInterval", HYDRAULICS_POLL_INTERVAL))
         PLAYBACK_DIR = configParser.get("hydraulics", "playbackDir", PLAYBACK_DIR)
+        HOME_DIR = configParser.get("hydraulics", "homeDir", HOME_DIR)
     except Exception:
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
@@ -52,7 +54,7 @@ if __name__ == '__main__':
         hydraulics_drv.init(HYDRAULICS_POLL_INTERVAL)
 
         # setup playback - NB - this is a set of utility functions, not own thread
-        hydraulics_playback.init()        
+        hydraulics_playback.init(HOME_DIR + PLAYBACK_DIR)        
 
         # initialize httpserver 
         httpd = BaseHTTPServer.HTTPServer(("", HTTP_PORT), hydraulics_webserver.HydraulicsHandler)

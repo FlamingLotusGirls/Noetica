@@ -1,0 +1,4 @@
+[ {"name":"PassThrough", "points":[{"type":"linger", "x":0, "y":0, "z":0, "transitTime":0, "lingerTime":4},
+                                  {"type":"passthrough", "x":1000, "y":0, "z":0, "transitTime":5, "lingerTime":0.5, "flameEffect":"NE"},
+                                  {"type":"linger", "x":1000, "y":1000, "z":0, "transitTime":5, "lingerTime":0.5, "flameEffect":"Top"}]}
+]

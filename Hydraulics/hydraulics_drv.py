@@ -48,6 +48,7 @@ ioThread = None
 
 poll_interval = 1
 logger = logging.getLogger('hydraulics')
+autoAttractModeEnabled = True
 
 def init(interval = 1000, mode=PASSTHROUGH):
     logger.info("Hydraulics driver init, interval {}, mode {}".format(interval, mode))
@@ -66,21 +67,23 @@ def init(interval = 1000, mode=PASSTHROUGH):
     ioThread.start()
     
 def shutdown():
-    print("Stopping driver thread")
+    logger.info("Hydraulics driver shutdown")
     if ioThread:
+        logger.info("...Joining hydraulics driver thread")
         ioThread.stop()
+        ioThread.join()
    
 def setTestOutputs(x, y, z):
     test_output_x = x
     test_output_y = y
     test_output_z = z
     
-def attractModeEnable(tf):
-    global attractModeEnabled
-    attractModeEnabled = tf
+def autoAttractModeEnable(tf):
+    global autoAttractModeEnabled
+    autoAttractModeEnabled = tf
 
-def isAttractModeEnabled():
-    return attractModeEnabled
+def isAutoAttractModeEnabled():
+    return autoAttractModeEnabled
 
 def getCurrentInput():
     return adc[0], adc[1], adc[2]     # I don't care about extremely intermittent erroneous values here, so no mutex lock

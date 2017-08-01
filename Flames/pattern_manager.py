@@ -58,7 +58,7 @@ def _loadPatternFile(flameEffectsFile):
         logger.exception("Bad JSON in pattern file")
         
 def shutdown():
-    pass
+    logger.info("Pattern Manager shut down")
     
 def _validatePattern(pattern):
     if not "name" in pattern:

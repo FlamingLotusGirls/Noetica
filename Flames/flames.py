@@ -17,12 +17,13 @@ import pattern_manager
 
 # default parameters - configuration file overrides
 HTTP_PORT     = 5000  
-TRIGGER_FILE  = "./triggers.json"
-SEQUENCE_FILE = "./sequences.json"
+TRIGGER_FILE  = "triggers.json"
+SEQUENCE_FILE = "sequences.json"
 HYDRAULICS_ADDR = "localhost"
 HTTP_PORT_HYDRAULICS = 9000
 POSITION_PORT = 9001
 WEBSOCKET_PORT = 5001
+HOME_DIR = "/home/flaming/Noetica/"
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)
 
@@ -45,12 +46,13 @@ if __name__ == '__main__':
         HYDRAULICS_ADDR = configParser.get("hydraulics", "server", HYDRAULICS_ADDR)
         SEQUENCE_FILE = configParser.get("flames", "sequenceFile", SEQUENCE_FILE)
         WEBSOCKET_PORT = configParser.get("flames", "websocketPort", WEBSOCKET_PORT)
+        HOME_DIR = configParser.get("flames", "homeDir", HOME_DIR)
     except:
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
         # initialize pattern manager
-        pattern_manager.init(SEQUENCE_FILE)
+        pattern_manager.init(HOME_DIR + SEQUENCE_FILE)
         
         # create queue for commands
         pooferCommandQueue = Queue.Queue()
@@ -65,7 +67,7 @@ if __name__ == '__main__':
         flames_controller.init(pooferCommandQueue)
         
         # Initialize trigger system
-        triggers.init(TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT )
+        triggers.init(HOME_DIR + TRIGGER_FILE, HYDRAULICS_ADDR, POSITION_PORT )
         
         # Initialize the websocket
         websocket.init(int(WEBSOCKET_PORT))

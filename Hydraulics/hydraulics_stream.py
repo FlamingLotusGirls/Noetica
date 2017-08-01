@@ -2,10 +2,14 @@
 thread to send hydraulic data'''
 
 import json
-from threading import Thread, Lock
-import socket
 import logging
 import Queue
+import select
+import socket
+from threading import Thread, Lock
+import threading
+import time
+
 import event_manager
 
 hydraulics_connection_manager = None
@@ -60,39 +64,46 @@ class HydraulicsConnectionManager(Thread):
                 self.hydraulics_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 self.hydraulics_socket.bind(("0.0.0.0", self.port))
                 logger.info("bind to {}:{}".format(socket.gethostname(), self.port))
-                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR? FIXME
+#                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR? FIXME
                 self.hydraulics_socket.listen(5)  # really should only ever be one or two connection requests
 
                 # use socket
                 while self.running:
-                    try: 
-                        logger.debug("socket accept... waiting")
+                    logger.debug("socket accept... waiting")
+                    reads, writes, errs = select.select([self.hydraulics_socket],[],[], 2.0)
+                    if len(reads) > 0:
+                        logger.debug("stream socket accept")
                         (clientsocket, address) = self.hydraulics_socket.accept() # socket blocks by default
-                    except socket.timeout:
+                        hydraulics_stream_thread = PositionStreamer(clientsocket, self)
+                        self.threadLock.acquire()
+                        self.threads.append(hydraulics_stream_thread)
+                        self.threadLock.release()
+                        hydraulics_stream_thread.start()
+                    else:
+                        logger.debug("socket timeout")
                         continue
-                        
-                    logger.debug("stream socket accept")
-                    hydraulics_stream_thread = PositionStreamer(clientsocket, self)
-                    self.threadLock.acquire()
-                    self.threads.append(hydraulics_stream_thread)
-                    self.threadLock.release()
-                    hydraulics_stream_thread.start()
-            
                     # XXX - do I want to use multiprocessing here? Rpis are quad core
                     # do I need the lock if I'm doing multicoring? check all of this
             except Exception as e: 
                 logger.exception("Error on hydraulics listener socket. Will rebind")
+                time.sleep(2) # XXX debugging only
                 #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
                 self.hydraulics_socket.close()
                 self.hydraulics_socket = None
-                pass
+
+            self.hydraulics_socket.close()
+            self.hydraulics_socket = None
                 
             
     def stop(self):
         self.running = False
         for streamThread in self.threads:
+            logger.debug("...Joining child streamer thread")
             streamThread.stop()
             streamThread.join()
+        if threading.currentThread != self:
+            logger.debug("...Joining main streamer thread")
+            self.join()
         
     def queueMessage(self, msg):
         for streamThread in self.threads:
