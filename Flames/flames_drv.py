@@ -182,7 +182,7 @@ class PooferFiringThread(Thread):
                 # should be current time (time.time()) plus the relative time from
                 # the start of the sequence
                 msgObj = json.loads(cmd)
-                type = msgObj["type"]
+                type = msgObj["cmdType"]
                 logger.debug("message is {}".format(msgObj))
                 if type == "flameEffectStart":
                     # figure out firing sequence associated with the name

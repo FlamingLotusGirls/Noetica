@@ -5,7 +5,11 @@ including running a sequence - should call into this module.
 
 Mediates with the low-level flames_drv via a message Queue (flameQueue, for pushing
 commands to the low level code) and event listener (for receiving events created by the
-flames driver)'''
+flames driver)
+
+Note that at the moment, many event types are not getting created. A more solid architecture
+would use the event queue to set state rather than setting state off of the command. But
+that seems like a nicety that I can ignore for now.'''
 
 import Queue
 import json
@@ -17,13 +21,11 @@ import mock_event_producer as mockDriver
 import event_manager
 import pattern_manager
 
-
-# XXX - FIXME - need to actually listen for events! Create a mock event producer 
-
 logger = logging.getLogger("flames")
 
 cmdQueue   = None       # requests from upper level
 disabledPoofers = list()
+activePoofers = list()
 globalEnable = True
 disabledFlameEffects = list()
 activeFlameEffects = list()
@@ -47,27 +49,25 @@ def shutdown():
 def doFlameEffect(flameEffectName):
     logger.debug("Doing flame effect {}".format(flameEffectName))
     if not flameEffectName in disabledFlameEffects:
-        flameEffectMsg = {"type":"flameEffectStart", "name":flameEffectName}
+        flameEffectMsg = {"cmdType":"flameEffectStart", "name":flameEffectName}
         cmdQueue.put(json.dumps(flameEffectMsg))
     
 def stopFlameEffect(flameEffectName):
-    flameEffectMsg = {"type":"flameEffectStop", "name":flameEffectName}
+    flameEffectMsg = {"cmdType":"flameEffectStop", "name":flameEffectName}
     cmdQueue.put(json.dumps(flameEffectMsg))
     
 def disableFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:
         disabledFlameEffects.append(flameEffectName)
     else:
-        # log this - disable called twice on same flame effect  
-        pass
+        logger.debug("Disable called twice on {}".format(flameEffectName))
     stopFlameEffect(flameEffectName)
 
 def enableFlameEffect(flameEffectName):
     if flameEffectName in disabledFlameEffects:
         disabledFlameEffects.remove(flameEffectName)
     else:
-        # log this - enable called twice on same flame effect  
-        pass
+        logger.debug("Enable called twice on {}".format(flameEffectName))
 
 def isFlameEffectActive(flameEffectName):
     return flameEffectName in activeFlameEffects
@@ -79,7 +79,7 @@ def disablePoofer(pooferId):
     if not pooferId in disabledPoofers:
         disabledPoofers.append(pooferId)
         if gUseDriver:
-            flameEffectMsg = {"type":"pooferDisable", "name":pooferId}
+            flameEffectMsg = {"cmdType":"pooferDisable", "name":pooferId}
             cmdQueue.put(json.dumps(flameEffectMsg))
         else:
             mockDriver.disablePoofer(pooferId)
@@ -88,7 +88,7 @@ def enablePoofer(pooferId):
     if pooferId in disabledPoofers:
         disabledPoofers.remove(pooferId)
         if gUseDriver:
-            flameEffectMsg = {"type":"pooferEnable", "name":pooferId}
+            flameEffectMsg = {"cmdType":"pooferEnable", "name":pooferId}
             cmdQueue.put(json.dumps(flameEffectMsg))
         else:
             mockDriver.enablePoofer(pooferId)
@@ -97,18 +97,18 @@ def isPooferEnabled(pooferId):
     return not (pooferId in disabledPoofers)
     
 def isPooferActive(pooferId):
-    return True  # XXX FIXME. Want to be listening for events!
+    return pooferId in activePoofers
     
 def globalPause():
     global globalEnable
-    flameEffectMsg = {"type":"stop"}
+    flameEffectMsg = {"cmdType":"stop"}
     globalEnable = False
     cmdQueue.put(json.dumps(flameEffectMsg))
 
 def globalRelease():
     global globalEnable
     globalEnable = True
-    flameEffectMsg = {"type":"resume"}
+    flameEffectMsg = {"cmdType":"resume"}
     cmdQueue.put(json.dumps(flameEffectMsg))
     
 def isStopped():
@@ -120,6 +120,41 @@ def getDisabledPoofers():
 def getDisabledFlameEffects():
     return disabledFlameEffects
     
-# XXX - event handler from low level code...
 def eventHandler(msg):
-    pass
+    msgType = msg["msgType"]
+    id = msg["id"]
+    if (msgType == "poofer_on"):
+        if not id in activePoofers:
+            logger.debug("Turned Poofer {} on".format(id))
+            activePoofers.append(id)
+    elif (msgType == "poofer_off"):
+        try:
+            logger.debug("Turned Poofer {} off".format(id))
+            activePoofers.remove(id)
+        except:
+            pass
+
+if __name__ == "__main__":
+    import mock_event_producer
+    import time
+    import Queue
+    
+    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
+
+    try:
+    
+        event_manager.init()
+        mock_event_producer.init()
+        init(Queue.Queue())
+        
+        while(True):
+            time.sleep(10)
+   
+    except Exception as e:
+        print "Exception occurs!", e
+    except KeyboardInterrupt:
+        print "Keyboard Interrupt!"
+        
+    event_manager.shutdown()
+    mock_event_producer.shutdown()
+    shutdown()

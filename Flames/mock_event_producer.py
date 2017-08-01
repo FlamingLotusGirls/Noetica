@@ -21,28 +21,28 @@ def shutdown():
 
 
 def turnOnPoofer(pooferName):
-    event_manager.postEvent({"type":"poofer_on", "id":pooferName})
+    event_manager.postEvent({"msgType":"poofer_on", "id":pooferName})
 
 def turnOffPoofer(pooferName):
-    event_manager.postEvent({"type":"poofer_off", "id":pooferName})
+    event_manager.postEvent({"msgType":"poofer_off", "id":pooferName})
     
 def enablePoofer(pooferName):
-    event_manager.postEvent({"type":"poofer_enabled", "id":pooferName})
+    event_manager.postEvent({"msgType":"poofer_enabled", "id":pooferName})
 
 def disablePoofer(pooferName):
-    event_manager.postEvent({"type":"poofer_disabled", "id":pooferName})
+    event_manager.postEvent({"msgType":"poofer_disabled", "id":pooferName})
     
 def sequenceStart(sequenceName):
-    event_manager.postEvent({"type":"sequence_start", "id":sequenceName})
+    event_manager.postEvent({"msgType":"sequence_start", "id":sequenceName})
 
 def sequenceStop(sequenceName):
-    event_manager.postEvent({"type":"sequence_stop", "id":sequenceName})
+    event_manager.postEvent({"msgType":"sequence_stop", "id":sequenceName})
 
 def sequenceEnabled(sequenceName):
-    event_manager.postEvent({"type":"sequence_enabled", "id":sequenceName})
+    event_manager.postEvent({"msgType":"sequence_enabled", "id":sequenceName})
 
 def sequenceDisabled(sequenceName):
-    event_manager.postEvent({"type":"sequence_disabled", "id":sequenceName})
+    event_manager.postEvent({"msgType":"sequence_disabled", "id":sequenceName})
     
 def fireRandomPoofers():
     global gFiringThread
