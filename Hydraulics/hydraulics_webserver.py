@@ -61,6 +61,8 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.getFile('text/html')
         elif self.path.endswith(".js"):
             self.getFile('application/javascript')
+        elif self.path.endswith(".css"):
+            self.getFile('text/css')
         else:
             print self.path
             pathArray = self.path[1:].split("/")
@@ -76,6 +78,14 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.sendError(404)
             else:
                 self.sendError(404)
+                
+    def do_DELETE(self):
+        print "DELETE" + self.path
+        pathArray = self.path[1:].split("/")
+        if (len(pathArray) == 3):
+            if ((pathArray[0] == "hydraulics") and (pathArray[1] == "playbacks")):
+                hydraulics_playback.deleteRecording(pathArray[2])
+
 
     def do_POST(self):
         ctype, pdict = parse_header(self.headers['content-type'])
@@ -106,10 +116,17 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if ("record" in postvars):
                     doRecord = postvars["record"][0]
                     if doRecord.lower() == "true":
-                        recordingFile = hydraulics_playback.getNewRecordingFile()
-                        hydraulics_drv.startRecording(recordingFile)
+                        hydraulics_playback.startRecording()
+                        #recordingFile = hydraulics_playback.getNewRecordingFile()
+                        #hydraulics_drv.startRecording(recordingFile)
                     else:
-                        hydraulics_drv.stopRecording()
+                        #hydraulics_drv.stopRecording()
+                        hydraulics_playback.stopRecording()
+                if ("manual_x" in postvars and manual_y in postvars and manual_z in postvars):
+                    hydraulics_drv.setManualPosition(postvars["manual_x"][0],
+                                                     postvars["manual_y"][0],
+                                                     postvars["manual_z"][0])
+                    
                 if ("loopback_x" in postvars):
                     loopback_x = postvars["loopback_x"][0]
                     x,y,z = hydraulics_drv.getLoopbackValues()
@@ -142,6 +159,8 @@ def getHydraulicsState():
     
     loopback_x, loopback_y, loopback_z = hydraulics_drv.getLoopbackValues()
     
+    manualPosition = hydraulics_drv.getManualPosition()
+    
     retObj = {}
     
     retObj["x"] = control_x
@@ -158,6 +177,9 @@ def getHydraulicsState():
     retObj["loopback_x"]      = loopback_x
     retObj["loopback_y"]      = loopback_y
     retObj["loopback_z"]      = loopback_z
+    retObj["manual_x"]        = manualPosition[0]
+    retObj["manual_y"]        = manualPosition[1]
+    retObj["manual_z"]        = manualPosition[2]
 
     print ( "Adding currentState to the data {} ({})".format(retObj["currentPlayback"],hydraulics_playback.getCurrentPlayback()) )
     

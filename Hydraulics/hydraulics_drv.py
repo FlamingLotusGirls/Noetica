@@ -39,6 +39,7 @@ ATTRACT     = 1   # send preset recording to outputs
 NO_MOVE     = 2   # just read inputs. Do not attempt to write to outputs
 LOOPBACK    = 3   # send test output to input
 TEST        = 4   # Internal test. Stream recorded data out to flame system
+MANUAL      = 5   # Manually set output values
 
 test_output_x = 0  
 test_output_y = 0
@@ -91,6 +92,12 @@ def getCurrentInput():
 def getVoltageInput():
     return VDC[4], VDC[5], VDC[6]
     
+def setManualPosition(x,y,z):
+    ioThread.setManualPosition(x,y,z)
+    
+def getManualPosition():
+    return ioThread.getManualPosition()
+    
 def setState(state):    
     global ioThread
     logger.info("Setting hydraulics driver state to {}".format(state))
@@ -105,11 +112,14 @@ def setState(state):
             ioThread.setState(LOOPBACK)
         elif (state.lower() == "test"):
             ioThread.setState(TEST)
+        elif (state.lower() == "manual"):
+            ioThread.setState(MANUAL)
         else:
             logger.warn("Attempted to set hydraulics driver to unknown state {}".format(state))
-            
+       
+# XXX FIXME - the conversion of states between strings and numbers is inane in python. Remove it.     
 def getAllStates():
-    return ["attract", "passthrough", "nomove", "loopback", "test"]
+    return ["attract", "passthrough", "nomove", "loopback", "test", "manual"]
     
 def getState():
     global ioThread
@@ -124,13 +134,17 @@ def getState():
         return "loopback"
     elif (intState == TEST):
         return "test"
+    elif (intState == MANUAL):
+        return "manual"
     else:
         return "unknown"
         
 def startRecording(file):
+    logger.info("Start recording to {}".format(file))
     ioThread.startRecording(file)
 
 def stopRecording():
+    logger.info("Recording stops")
     ioThread.stopRecording()
     
 def isRecording():
@@ -138,6 +152,7 @@ def isRecording():
     
 def getLoopbackValues():
     return test_output_x, test_output_y, test_output_z
+
     
 def setLoopbackValues(x, y, z):
     global test_output_x
@@ -160,6 +175,7 @@ class four_20mA_IO_Thread(Thread):
         self.isRecording   = False
         self.recordingFile = None
         self.fileMutex = Lock()
+        self.manualPosition = [0,0,0]
         
         GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
         GPIO.output(4,1)
@@ -172,11 +188,19 @@ class four_20mA_IO_Thread(Thread):
         self.running = False
         
     def setState(self, state):
-        if (state == PASSTHROUGH or state == ATTRACT or state == NO_MOVE or state == LOOPBACK or state == TEST):
+        if (state == PASSTHROUGH or state == ATTRACT or state == NO_MOVE or state == LOOPBACK or state == TEST or state==MANUAL):
             self.state = state
             
     def getState(self):
         return self.state
+    
+    def setManualPosition(self, x, y, z):
+        self.manualPosition[0] = x
+        self.manualPosition[1] = y
+        self.manualPosition[2] = z
+        
+    def getManualPosition(self):
+        return self.manualPosition
         
     def startRecording(self, file):
         if self.isRecording:
@@ -233,6 +257,10 @@ class four_20mA_IO_Thread(Thread):
                     self.writeAnalogOutput(4,  0, test_output_x)
                     self.writeAnalogOutput(4,  1, test_output_y)
                     self.writeAnalogOutput(22, 0, test_output_z)
+                elif (self.state == MANUAL):
+                    self.writeAnalogOutput(4, 0, self.manualPosition[0])
+                    self.writeAnalogOutput(4, 1, self.manualPosition[1])
+                    self.writeAnalogOutput(22, 0,self.manualPosition[2])
                 self.spi.close() # XXX open and then close? what?
                 if (self.isRecording):
                     if time.time() >= self.recordingStopTime:

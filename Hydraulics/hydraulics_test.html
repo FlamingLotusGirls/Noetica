@@ -7,22 +7,66 @@
   <title>Noetica Hydraulics Test</title>
   <meta name="description" content="Noetica Hydraulics Test">
 
-  <!--
-  <link rel="stylesheet" href="css/styles.css">
-  ->
+  <link rel="stylesheet" type="text/css" href="jquery-ui-min-1.8.24.css">
 
-  <!--[if lt IE 9]>
+  <!--[if lt IE 9]-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
   <!--[endif]-->
 </head>
+<style>
+.poofer {background-color:grey; width:20px; height:20px; position:absolute;}
+.poofer.active {background-color:orange;}
+.top-button {font-size:12pt; font-family:sans-serif}
+h1 {font-family:sans-serif}
+h2 {font-family:sans-serif; margin:0px}
+h3 {font-family:sans-serif; margin:0px; border:0px}
+.section {margin:10px; border:2px; background-color:#F0F0F0; padding:10px }
+.section_container{border-style:solid; border-width:2px}
+</style>
 
 <body>
-  <h1>Noetica Hydraulics Test Page </h1>
-  <h2>Current Values</h2>
-  <div id="x">unknown</div>&nbsp;&nbsp;&nbsp;<div id="y">unknown</div>&nbsp;&nbsp;&nbsp;<div id="z">unknown</div></div>
-  <br><br>
-  <h2>Voltage Values</h2>
-  <div id="pid_x">unknown</div>&nbsp;&nbsp;&nbsp;<div id="pid_y">unknown</div>&nbsp;&nbsp;&nbsp;<div id="pid_z">unknown</div></div>
+  <h1>Noetica Hydraulics Management </h1>
+  <div class="section_container">
+  <h2>Position</h2>
+  <div id="Position" class="section">
+      <h3>Controller Position (0...4095)</h3>
+      x:&nbsp;<span id="controller_x">unknown</span>&nbsp;&nbsp;&nbsp;
+      y:&nbsp;<span id="controller_y">unknown</span>&nbsp;&nbsp;&nbsp;
+      z:&nbsp;<span id="controller_z">unknown</span>
+      <br><br>
+      <h3>Sculpture Position (0....4095)</h3>
+      x:&nbsp;<span id="sculpture_x">unknown</span>&nbsp;&nbsp;&nbsp;
+      y:&nbsp;<span id="sculpture_y">unknown</span>&nbsp;&nbsp;&nbsp;
+      z:&nbsp;<span id="sculpture_z">unknown</span>
+  </div>
+  </div>
+    <br>
+  <div class="section_container">
+  <h2>Control</h2>
+  <div id="Control" class="section">
+  <h3>Set Mode</h3>
+  <div>
+  <div style="position:relative">
+      <div style="float:left"><select id="driverState"></select>&nbsp;&nbsp;</div>
+      <div style="float:left; display:none" id="manual_values">x:<input type="number" min=0 max=4095 width="20px" value=0  id="manual_x">
+                              y:<input type="number" min=0 max=4095 width="20px" value=0 id="manual_y">&nbsp;
+                              z:<input type="number"min=0 max=4095 width="20px" value=0  id="manual_z">&nbsp;</div>
+  </div><br>
+  </div>
+  <div>&nbsp;
+  <h3>Set Motion Playback</h3>
+  <select id="playbackSelect"></select>
+  <button id="playbackRename">Rename Playback</button>&nbsp;
+  <button id="playbackDelete">Delete Playback</button>
+  <div id="dialog" title="Rename Playback">Old Name: <span id="old_playback_name"></span><br>
+    New Name:<input type="text" id="new_playback_name"></div>
+  </div>
+  <br>
+  <h3>Record Playback</h3>
+    <button type="button" id="record">Record</button>
+  </div>
+  </div>
+<!--
   <br>
   <br>
   <h2>Hydraulics Driver State</h2>
@@ -42,10 +86,12 @@
   <br>
   <h2>Record Playback</h2>
   <button type="button" id="record">Record</button>
+-->
 </body>
 </html>
 
 <script type="text/javascript" src="jquery-1.4.3.min.js"></script>
+<script type="text/javascript" src="jquery-ui-min-1.8.24.js"></script>
 
 <script type="text/javascript">
 
@@ -57,27 +103,42 @@ function getValues(){
         url:"/hydraulics",
         success: function(data, status, req) {
             console.log(data);
-            $("#x").html(data["x"]);
-            $("#y").html(data["y"]);
-            $("#z").html(data["z"]);
+            $("#controller_x").html(data["x"]);
+            $("#controller_y").html(data["y"]);
+            $("#controller_z").html(data["z"]);
             
-            $("#pid_x").html(data["pid_x"]);
-            $("#pid_y").html(data["pid_y"]);
-            $("#pid_z").html(data["pid_z"]);
-                     
+            $("#sculpture_x").html(data["pid_x"]);
+            $("#sculpture_y").html(data["pid_y"]);
+            $("#sculpture_z").html(data["pid_z"]);
+ 
+ /*                    
             $("#loopback_x").val(data["loopback_x"]);
             $("#loopback_y").val(data["loopback_y"]);
             $("#loopback_z").val(data["loopback_z"]);
             
-            
+  */          
             var select = $("select#driverState")
             select.html("");
 
             for (option in data["states"]){
-                val = data["states"][option]
-                select.append($("<option>")
-                    .val(val)
-                    .html(val));
+                var val = data["states"][option]
+                var desc = ""
+                if (val == "passthrough") {
+                    desc = "Normal (passthrough)";
+                } else if (val == "nomove"){
+                    desc = "Movement Disabled";
+                } else if (val == "test") {
+                    desc = "Flames Test - No Movement";
+                } else if (val == "attract") {
+                    desc = "Playback (attract)";
+                } else if (val == "manual") {
+                    desc = "Manual Control"
+                }
+                if (desc != "") {
+                    select.append($("<option>")
+                        .val(val)
+                        .html(desc));
+                }
             }
             select.val(data["currentState"]);
             
@@ -120,11 +181,15 @@ function getPosition() {
 }
 
 
-function setDriverState(state) {
+function setDriverState(state, x, y, z) {
     $.ajax({
         type: 'POST',
         url: "/hydraulics",  
-        data: {"state":state},
+        data: {"state":state,
+               "manual_x":x,
+               "manual_y":y,
+               "manual_z":z  
+              },
         success: function(data, status, req) {
             getValues();
         },
@@ -192,12 +257,52 @@ function stopRecording() {
     });
 }
 
+function renamePlayback() {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"oldPlaybackName":$("#playbackSelect").val(),
+               "newPlaybackName":$("#new_playback_name").val()},
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error stopping playback record");
+        }
+    });
+}
+
+function deletePlayback(playbackName) {
+    console.log("delete playback called")
+    $.ajax({
+        type: 'DELETE',
+        url: "/hydraulics/playbacks/" + playbackName,  
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error deleting playback record");
+        }
+    });
+}
+
+ 
+
 
 $(document).ready(function() {
     console.log("READY called");
     getValues();
     $("#driverState").change(function(){
-        setDriverState($("#driverState option:selected").val());
+        var stateValue = $("#driverState option:selected").val();
+        if (stateValue == "manual") {
+            $("#manual_values").show()
+        }else{
+            $("#manual_values").hide()
+        }
+        setDriverState($("#driverState option:selected").val(), 
+                       $("manual_x"),
+                       $("manual_y"),
+                       $("manual_z"));
     });
     $("#playbackSelect").change(function(){
         setCurrentPlayback($("#playbackSelect option:selected").val());
@@ -216,10 +321,25 @@ $(document).ready(function() {
     $("#loopback_button").click(function(){
         setLoopbackTestValues($("#loopback_x").val(), $("#loopback_y").val(), $("#loopback_z").val());
     });
+    
+   $( "#dialog" ).dialog({ autoOpen: false,
+                           modal:true,
+                           buttons: { "OK": function() { $(this).dialog("close");
+                                                         renamePlayback(); },
+                                      "Cancel": function() { $(this).dialog("close"); }}
+                     });
+    $( "#playbackRename" ).click(function() {
+        $("#old_playback_name").html($("#playbackSelect").val());
+        $( "#dialog" ).dialog( "open" ).modal;
+    });
+
+    $( "#playbackDelete" ).click(function() {
+        deletePlayback($("#playbackSelect").val());
+    });
 
     var timer = setInterval(function() {
         getPosition();
-    }, 1000);
+    }, 10000);
 
 });
 

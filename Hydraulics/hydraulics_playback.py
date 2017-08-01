@@ -12,11 +12,11 @@ import logging
 import hydraulics_drv
 
 playbackList = []
-#playbackDir = "/home/flaming/Noetica/Hydraulics/playbacks/"
 playbackDir = "./playbacks/"
 playbackData = [] 
 playbackDataIdx = 0
 currentPlayback = None
+recordingFilename = None
 
 # XXX - should the playback file specify the interval in which it is expected to run? Probably...
 logger = logging.getLogger('playback')
@@ -71,7 +71,30 @@ def renamePlayback(oldName, newName):
     if os.path.isfile(playbackDir + oldName + ".rec"):
         os.rename(playbackDir + oldName + ".rec", playbackDir + newName + ".rec")
     for i in range(len(playbackList)):
-        playbackList[i] = newName
+        if playbackList[i] == oldName:
+            playbackList[i] = newName
+            break
+            
+def startRecording():
+
+    hydraulics_drv.startRecording(_getNewRecordingFile())
+    
+def isRecording():
+    return (recordingFilename == None)
+    
+def stopRecording():
+    global recordingFilename
+    hydraulics_drv.stopRecording()
+    playbackList.append(recordingFilename)
+    recordingFilename = None
+    
+def deleteRecording(recordingName):
+    if recordingName in playbackList:
+        os.remove(playbackDir + recordingName + ".rec")
+        playbackList.remove(recordingName)
+    else:
+        log.warn("Recording file {} not found".format(recordingName))
+
     
 def setCurrentPlayback(playbackName):
     ''' Read desired playback into memory, and set up internal cursor to the beginning
@@ -113,9 +136,11 @@ def getPlaybackData():
         
     return x, y, z
     
-def getNewRecordingFile():
-    now = datetime.date.today()
-    file = open(playbackDir + time.strftime("%d-%m-%y__%H:%M:%S", time.gmtime())+ ".rec", "w+")
+def _getNewRecordingFile():
+    global recordingFilename 
+    recordingFilename = time.strftime("%m-%d-%y__%H:%M:%S", time.gmtime())
+    #now = datetime.date.today()
+    file = open(playbackDir + recordingFilename + ".rec", "w+")
     return file
         
         
