@@ -1,5 +1,6 @@
-''' Set up socket to listen on known port. If we get a connection, attach and spin off
-thread to send hydraulic data'''
+''' Hydraulics position streamer. Sends JSON data on sculpture position to listeners.
+Listens on known port. If we get a connection, attach and spin off thread on which to 
+send position data'''
 
 import json
 import logging
@@ -32,9 +33,6 @@ def messageHandler(message):
     newMessage = {"x":message["x"], "y":message["y"], "z":message["z"]}
     hydraulics_connection_manager.queueMessage(newMessage)
     
-#def sendMessage(message):
-#    hydraulics_connection_manager.queueMessage(message)
-
 
 class HydraulicsConnectionManager(Thread):
     ''' Responsible for mediating between the hydraulics system (which is generating
@@ -60,11 +58,9 @@ class HydraulicsConnectionManager(Thread):
             try:
                 # set up socket
                 self.hydraulics_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#                self.hydraulics_socket.bind((socket.gethostname(), self.port))
                 self.hydraulics_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 self.hydraulics_socket.bind(("0.0.0.0", self.port))
                 logger.info("bind to {}:{}".format(socket.gethostname(), self.port))
-#                self.hydraulics_socket.settimeout(5)  # XXX REUSE ADDR? FIXME
                 self.hydraulics_socket.listen(5)  # really should only ever be one or two connection requests
 
                 # use socket
@@ -86,8 +82,7 @@ class HydraulicsConnectionManager(Thread):
                     # do I need the lock if I'm doing multicoring? check all of this
             except Exception as e: 
                 logger.exception("Error on hydraulics listener socket. Will rebind")
-                time.sleep(2) # XXX debugging only
-                #self.hydraulics_socket.shutdown(socket.SHUT_RDWR)
+                #time.sleep(2) # XXX debugging only
                 self.hydraulics_socket.close()
                 self.hydraulics_socket = None
 
@@ -163,12 +158,3 @@ class PositionStreamer(Thread):
     def stop(self):
         self.running = False
           
-
-# who receives the shutdown signal from the keyboard or the kill signal? Is it always the parent, or not?
-# And questions about multiprocessing to allow me to use all of the cores
-# And some test code, of course
-# test mode?
-# test trigger - single point, multi point linger, multipoint passthrough, failure cases
-# test sample data
-
-
