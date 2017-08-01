@@ -85,6 +85,7 @@ class HydraulicsConnectionManager(Thread):
                 #time.sleep(2) # XXX debugging only
                 self.hydraulics_socket.close()
                 self.hydraulics_socket = None
+                time.sleep(0.1)
 
             self.hydraulics_socket.close()
             self.hydraulics_socket = None
