@@ -44,14 +44,12 @@ if __name__ == "__main__":
    
     except Exception as e:
         print "Exception occurs!", e
-        mock_event_producer.shutdown()
-        event_manager.shutdown()
-        shutdown()
     except KeyboardInterrupt:
         print "Keyboard Interrupt!"
-        event_manager.shutdown()
-        mock_event_producer.shutdown()
-        shutdown()
+        
+    event_manager.shutdown()
+    mock_event_producer.shutdown()
+    shutdown()
 
 
     
