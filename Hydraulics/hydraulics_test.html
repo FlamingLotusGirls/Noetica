@@ -48,7 +48,7 @@ h3 {font-family:sans-serif; margin:0px; border:0px}
   <div>
   <div style="position:relative">
       <div style="float:left"><select id="driverState"></select>&nbsp;&nbsp;</div>
-      <div style="float:left; display:none" id="manual_values">x:<input type="number" min=0 max=4095 width="20px" value=0  id="manual_x">
+      <div style="float:left" id="manual_values">Manual Values:&nbsp;&nbsp;x:<input type="number" min=0 max=4095 width="20px" value=0  id="manual_x">
                               y:<input type="number" min=0 max=4095 width="20px" value=0 id="manual_y">&nbsp;
                               z:<input type="number"min=0 max=4095 width="20px" value=0  id="manual_z">&nbsp;</div>
   </div><br>
@@ -110,6 +110,12 @@ function getValues(){
             $("#sculpture_x").html(data["pid_x"]);
             $("#sculpture_y").html(data["pid_y"]);
             $("#sculpture_z").html(data["pid_z"]);
+            
+            $("#manual_x").val(data["manual_x"]);
+            $("#manual_y").val(data["manual_y"]);
+            $("#manual_z").val(data["manual_z"]);
+            
+            console.log("MANUAL X is " + data["manual_x"]);
  
  /*                    
             $("#loopback_x").val(data["loopback_x"]);
@@ -286,6 +292,22 @@ function deletePlayback(playbackName) {
     });
 }
 
+function setManualValues(x,y,z) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"manual_x":x,
+               "manual_y":y,
+               "manual_z":z  
+              },
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting driver state");
+        }
+    });
+}
  
 
 
@@ -294,15 +316,16 @@ $(document).ready(function() {
     getValues();
     $("#driverState").change(function(){
         var stateValue = $("#driverState option:selected").val();
-        if (stateValue == "manual") {
+/*        if (stateValue == "manual") {
             $("#manual_values").show()
         }else{
             $("#manual_values").hide()
         }
+*/
         setDriverState($("#driverState option:selected").val(), 
-                       $("manual_x"),
-                       $("manual_y"),
-                       $("manual_z"));
+                       $("#manual_x"),
+                       $("#manual_y"),
+                       $("#manual_z"));
     });
     $("#playbackSelect").change(function(){
         setCurrentPlayback($("#playbackSelect option:selected").val());
@@ -335,6 +358,18 @@ $(document).ready(function() {
 
     $( "#playbackDelete" ).click(function() {
         deletePlayback($("#playbackSelect").val());
+    });
+    
+    $( "#manual_x").change(function(){ 
+        setManualValues($("#manual_x").val(),$("#manual_y").val(),$("#manual_z").val());
+    });
+
+    $( "#manual_y").change(function(){ 
+        setManualValues($("#manual_x").val(),$("#manual_y").val(),$("#manual_z").val());
+    });
+
+    $( "#manual_z").change(function(){ 
+        setManualValues($("#manual_x").val(),$("#manual_y").val(),$("#manual_z").val());
     });
 
     var timer = setInterval(function() {

@@ -122,7 +122,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     else:
                         #hydraulics_drv.stopRecording()
                         hydraulics_playback.stopRecording()
-                if ("manual_x" in postvars and manual_y in postvars and manual_z in postvars):
+                if ("manual_x" in postvars and "manual_y" in postvars and "manual_z" in postvars):
                     hydraulics_drv.setManualPosition(postvars["manual_x"][0],
                                                      postvars["manual_y"][0],
                                                      postvars["manual_z"][0])
