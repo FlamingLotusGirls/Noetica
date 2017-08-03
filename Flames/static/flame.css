@@ -13,12 +13,16 @@ body {
 .inverted {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
+.inverted .poofer-enabled {
+  filter: invert(100%); /* Don't invert poofer background */
+}
 .center {
   text-align: center;
 }
 
 .poofer-enabled {
-  background-color: #ff9999; /* XXX Replace this with a gif */
+  background-color: #ff9999;
+  background: #ff9999 url("images/poofer-enabled.gif") no-repeat center center;
 }
 .page-container {
   height: 100%;
@@ -63,9 +67,30 @@ body {
 }
 .poofer-individual-toggle-container {
   height: 50%;
+  display: flex;
+  flex-direction: column;
+}
+.poofer-individual-toggle-header {
+  text-transform: uppercase;
+}
+.poofer-individual-toggle-main {
+  display: flex;
+  align-items: center; /* vertically centers the children */
 }
 .poofer-individual-toggle-button {
   width: 5em;
+}
+.selected-poofer-display-container {
+  display: flex;
+  flex-direction: column;
+  margin-left: 1em;
+  text-align: center;
+}
+.selected-poofer-label {
+  font-size: .25em;
+}
+.poofer-selected-display-field {
+  border: 1px solid black;
 }
 
 .hydraulics-label {
@@ -83,18 +108,18 @@ body {
 .hydraulics-position-display-container {
   margin-left: 1em;
 }
-.hydraulics-attract-file-picker {
+.sequence-file-picker {
   list-style: none;
   border: 1px solid black;
   padding: 2px;
   height: 6em;
   overflow-x: scroll;
 }
-.hydraulics-attract-file {
+.sequence-file {
   background-color: #ffffff;
   color: #666666;
 }
-.hydraulics-attract-file.selected {
+.sequence-file.selected {
   background-color: #eeeeee;
   color: #000000;
 }
