@@ -98,9 +98,20 @@
             </label>
           </div>
           <div class="poofer-individual-toggle-container">
-            <div>Individual Poofers</div>
-            <button class="poofer-individual-toggle-button">Start</button>
-            <span class="poofer-selected-display-field">No poofer selected</span>
+            <div class="poofer-individual-toggle-header">Individual Poofers</div>
+            <div class="poofer-individual-toggle-main">
+              <div class="poofer-individual-toggle-button-container">
+                <button class="poofer-individual-toggle-button">Enable</button>
+              </div>
+              <div class="selected-poofer-display-container">
+                <div class="selected-poofer-label">Selected Poofer</div>
+                <div class="poofer-selected-display-field">No poofer selected</div>
+              </div>
+            </div>
+          </div>
+          <div class="poofer-sequence-file-picker-container sequence-file-picker-container">
+            <ul class="poofer-sequence-file-picker sequence-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">
+            </ul>
           </div>
         </div>
       </div>
@@ -131,9 +142,9 @@
             <table class="hydraulics-position-display">
               <tr><th class="center" colspan="4">Status</th>
               <tr><th></th><th>Controller</th><th></th><th>Sculpture</th></tr>
-              <tr><td>x</td><td class="hydraulics-label hydraulics-controller-label-x"></td><td>x</td><td class="hydraulics-label hydraulics-sculpture-label-x"></td></tr>
-              <tr><td>y</td><td class="hydraulics-label hydraulics-controller-label-y"></td><td>y</td><td class="hydraulics-label hydraulics-sculpture-label-y"></td></tr>
-              <tr><td>z</td><td class="hydraulics-label hydraulics-controller-label-z"></td><td>z</td><td class="hydraulics-label hydraulics-sculpture-label-z"></td></tr>
+              <tr><td>x</td><td class="hydraulics-label hydraulics-label-x"></td><td>x</td><td class="hydraulics-label hydraulics-label-pid_x"></td></tr>
+              <tr><td>y</td><td class="hydraulics-label hydraulics-label-y"></td><td>y</td><td class="hydraulics-label hydraulics-label-pid_y"></td></tr>
+              <tr><td>z</td><td class="hydraulics-label hydraulics-label-z"></td><td>z</td><td class="hydraulics-label hydraulics-label-pid_z"></td></tr>
             </table>
           </div>
         </div>
@@ -144,10 +155,10 @@
             </label>
           </div>
           <div class="hydraulics-attract-controls-container">
-            <button class="hydraulics-attract-play-stop-button">Play/Stop</button>
+            <button class="hydraulics-attract-play-stop-button">Start/Stop</button>
           </div>
-          <div class="hydraulics-attract-file-picker-container">
-            <ul class="hydraulics-attract-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">
+          <div class="hydraulics-attract-file-picker-container sequence-file-picker-container">
+            <ul class="hydraulics-attract-file-picker sequence-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">
             </ul>
           </div>
           <div class="hydraulics-attract-trash-container">

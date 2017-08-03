@@ -1,17 +1,22 @@
 $(function ($) {
   // Constants
-  var hydraulicsHost = 'localhost' // XXX change this to a real thing
-  var flameHost = 'localhost' // XXX change this to a real thing
+  var flameHost = 'noetica-flames.local'
   var pollingInterval = 1000 // in milliseconds
+  var prefixes = {
+    hydraulics: 'hydraulics-attract',
+    poofer: 'poofer-sequence'
+  }
 
   // Test values
   var hydraulicsAttractFiles = ['wicked poof', 'poofy smurf', 'superfly', 'black sunshine']
+  var pooferSequenceFiles = ['poofy pooferson', 'poof daddy', 'sugar poof', 'poofy mcpoofface']
 
   // Initial values
   var selectedPoofer = null
   var inverted = false
-  var selectedFilename = null
+  var selectedFilenames = {}
   var hydraulicsAttractMode = false
+  var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
 
   // jQuery helpers
   $.fn.reduce = function() {
@@ -22,8 +27,17 @@ $(function ($) {
   var flameUrl = function(endpoint) {
     return `http://${flameHost}/${endpoint}`
   }
-  var hydraulicsUrl = function(endpoint) {
-    return `http://${hydraulicsHost}/${endpoint}`
+  var getOrSetFilename = function(prefix, filename) {
+    if (filename !== undefined) {
+      selectedFilenames[prefix] = filename
+    }
+    return selectedFilenames[prefix]
+  }
+  var selectedHydraulicsFilename = function(filename) {
+    return getOrSetFilename(prefixes.hydraulics, filename);
+  }
+  var selectedPooferFilename = function(filename) {
+    return getOrSetFilename(prefixes.poofer, filename)
   }
 
   // jQuery helper functions
@@ -34,10 +48,10 @@ $(function ($) {
   // Display state update functions
   var updatePooferToggleButtonState = function() {
     var enabled = !selectedPoofer || selectedPoofer.enabled
-    $('.poofer-individual-toggle-button').text(enabled ? 'Stop' : 'Start')
+    $('.poofer-individual-toggle-button').text(enabled ? 'Disable' : 'Enable')
   }
   var updateSelectedPooferName = function() {
-    var name = (selectedPoofer && selectedPoofer.name) || ''
+    var name = (selectedPoofer && selectedPoofer.name) || 'None'
     $('.poofer-selected-display-field').html(name)
   }
   var updateSelectedPooferDependentState = function() {
@@ -58,12 +72,17 @@ $(function ($) {
       updatePooferDisplayState(poofer)
     })
   }
-  var updateHydraulicsAttractFilePicker = function() {
-    var $files = $('.hydraulics-attract-file')
-    var $fileList = $('.hydraulics-attract-file-picker')
+  var updateHydraulicsDisplayState = function() {
+    ['x','y','z','pid_x','pid_y','pid_z'].forEach(function(coord) {
+      $(`.hydraulics-label-${coord}`).text(hydraulicsState[coord])
+    })
+  }
+  var updateFilePicker = function(prefix, fileList) {
+    var $files = $(`.${prefix}-file`)
+    var $fileList = $(`.${prefix}-file-picker`)
     var addedFiles = []
     var removedFiles = []
-    hydraulicsAttractFiles.forEach(function(file) {
+    fileList.forEach(function(file) {
       var fileInList = $files.reduce(function(acc, cur) {
         var $cur = $(cur)
         return acc || $cur.data('name') === file
@@ -74,13 +93,13 @@ $(function ($) {
     })
     $files.each(function(idx, file) {
       var $file = $(file)
-      var fileInList = hydraulicsAttractFiles.reduce(function(acc, cur) {
+      var fileInList = fileList.reduce(function(acc, cur) {
         return acc || $file.data('name') === cur
       }, false)
       if (!fileInList) {
         removedFiles.push($file)
         if ($file.hasClass('selected')) {
-          selectedFilename = null
+          selectedFilenames[prefix] = null
         }
       }
     })
@@ -88,13 +107,19 @@ $(function ($) {
       $fileList.removeChild($file)
     })
     addedFiles.forEach(function(file) {
-      var $file = $(`<li class="hydraulics-attract-file" data-name="${file}">${file}</li>`)
+      var $file = $(`<li class="${prefix}-file sequence-file" data-name="${file}">${file}</li>`)
       $fileList.append($file)
     })
   }
+  var updateHydraulicsAttractFilePicker = function() {
+    updateFilePicker(prefixes.hydraulics, hydraulicsAttractFiles)
+  }
+  var updatePooferSequenceFilePicker = function() {
+    updateFilePicker(prefixes.poofer, pooferSequenceFiles)
+  }
   var updateHydraulicsAttractPlayMode = function() {
     var oldMode = hydraulicsAttractMode
-    if (!selectedFilename) {
+    if (!selectedHydraulicsFilename()) {
       hydraulicsAttractMode = false
       $('.hydraulics-attract-play-stop-button').attr('disabled', true)
       $('.hydraulics-attract-play-stop-button').text('Start')
@@ -109,10 +134,12 @@ $(function ($) {
   var updateSelectedFileDependentState = function() {
     updateHydraulicsAttractPlayMode()
   }
-  var updateEverything = function() {
+  var updateAllUIState = function() {
     updateSelectedPooferDependentState()
     updateAllPoofersDisplayState()
+    updateHydraulicsDisplayState()
     updateHydraulicsAttractFilePicker()
+    updatePooferSequenceFilePicker()
     updateSelectedFileDependentState()
   }
 
@@ -121,11 +148,16 @@ $(function ($) {
     selectedPoofer = allPoofersState[name]
     updateSelectedPooferDependentState()
   }
-  var updatePooferDate = function (data) {
+  var updatePooferData = function (data) {
     data.forEach(function(poofer) {
       var pooferState = allPoofersState[poofer.name]
       pooferState.enabled = poofer.enabled
     })
+  }
+  var updateHydraulicsData = function (data) {
+    hydraulicsState = data
+    hydraulicsAttractFiles = data.playbacks
+    hydraulicsFileName(data.currentPlayback)
   }
 
   // Setup poofer data structures
@@ -167,51 +199,88 @@ $(function ($) {
       $.post(flameUrl(`poofers/${selectedPoofer.name}`), { enabled: selectedPoofer.enabled })
     }
   })
-  $('.hydraulics-attract-file-picker').on('click', function(event) {
-    var $selectedItem = $(event.target)
-    if ($selectedItem.length === 0 || !$selectedItem.hasClass('hydraulics-attract-file')) {
-      return
-    }
-    selectedFilename = $selectedItem.data('name')
-    if (!$selectedItem.hasClass('selected')) {
-      $('.hydraulics-attract-file-picker li').removeClass('selected')
-      $selectedItem.addClass('selected')
-    }
-    updateEverything()
+  Object.keys(prefixes).forEach(function(prefixKey) {
+    var prefix = prefixes[prefixKey]
+    $(`.${prefix}-file-picker`).on('click', function(event) {
+      var $selectedItem = $(event.target)
+      if ($selectedItem.length === 0 || !$selectedItem.hasClass(`${prefix}-file`)) {
+        return
+      }
+      selectedFilenames[prefix] = $selectedItem.data('name')
+      if (!$selectedItem.hasClass('selected')) {
+        $(`.${prefix}-file-picker li`).removeClass('selected')
+        $selectedItem.addClass('selected')
+      }
+      postAttractFile(prefix)
+      updateAllUIState()
+    })
   })
   $('.hydraulics-attract-play-stop-button').on('click', function() {
     hydraulicsAttractMode = !hydraulicsAttractMode
     postHydraulicsAttractMode()
-    updateEverything()
+    updateAllUIState()
   })
 
   // Ajax functions
   var postHydraulicsAttractMode = function() {
-    if (hydraulicsAttractMode && selectedFilename) {
-      $.post(hydraulicsUrl('hydraulics'), {
+    if (hydraulicsAttractMode && selectedHydraulicsFilename()) {
+      $.post(flameUrl('hydraulics'), {
         state: 1,
-        currentPlayback: selectedFilename
+        currentPlayback: selectedHydraulicsFilename()
       })
     } else {
       // just in case, make state consistent
       hydraulicsAttractMode = false
-      $.post(hydraulicsUrl('hydraulics'), {
+      $.post(flameUrl('hydraulics'), {
         state: 0
       })
     }
+  }
+  var postAttractFile = function(prefix) {
+    var filename = selectedFilenames[prefix]
+    if (filename) {
+      if (prefix === prefixes.hydraulics) {
+        $.post(flameUrl('hydraulics'), {
+          currentPlayback: filename
+        })
+      } else if (prefix === prefixes.poofer) {
+        $.post(flameUrl('flame'), {
+          currentPlayback: filename
+        })
+      }
+    }
+  }
+
+  // Ajax callbacks
+  var flameDataCallback = function(data) {
+    updatePooferData(data)
+    updateAllUIState()
+  }
+  var hydraulicsDataCallback = function(data) {
+    updateHydraulicsData(data)
+    updateAllUIState()
+  }
+
+  // Ajax promise factories
+  var get = function(endpoint) {
+    return $.get(flameUrl(endpoint))
+  }
+  var getFlameData = function() {
+    return get('flame')
+  }
+  var getHydraulicsData = function() {
+    return get('hydraulics')
   }
 
   // Setup polling
   var pollingFunction = function() {
     var polling = $('.polling-checkbox').is(':checked')
     if (!polling) return
-    $.get(flameUrl('flame')).done(function(data) {
-      updatePooferData(data)
-      updateEverything()
-    })
+    getFlameData().done(flameDataCallback)
+    getHydraulicsData().done(hydraulicsDataCallback)
   }
   setInterval(pollingFunction, pollingInterval)
 
   // Make sure initial UI state is correct
-  updateEverything()
+  updateAllUIState()
 })
