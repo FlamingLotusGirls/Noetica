@@ -28,43 +28,58 @@ h3 {font-family:sans-serif; margin:0px; border:0px}
   <h1>Noetica Hydraulics Management </h1>
   <div class="section_container">
   <h2>Position</h2>
-  <div id="Position" class="section">
-      <h3>Controller Position (0...4095)</h3>
-      x:&nbsp;<span id="controller_x">unknown</span>&nbsp;&nbsp;&nbsp;
-      y:&nbsp;<span id="controller_y">unknown</span>&nbsp;&nbsp;&nbsp;
-      z:&nbsp;<span id="controller_z">unknown</span>
-      <br><br>
-      <h3>Sculpture Position (0....4095)</h3>
-      x:&nbsp;<span id="sculpture_x">unknown</span>&nbsp;&nbsp;&nbsp;
-      y:&nbsp;<span id="sculpture_y">unknown</span>&nbsp;&nbsp;&nbsp;
-      z:&nbsp;<span id="sculpture_z">unknown</span>
+      <div id="Position" class="section">
+          <h3>Controller Position (0...4095)</h3>
+          x:&nbsp;<span id="controller_x">unknown</span>&nbsp;&nbsp;&nbsp;
+          y:&nbsp;<span id="controller_y">unknown</span>&nbsp;&nbsp;&nbsp;
+          z:&nbsp;<span id="controller_z">unknown</span>
+          <br><br>
+          <h3>Sculpture Position (0....4095)</h3>
+          x:&nbsp;<span id="sculpture_x">unknown</span>&nbsp;&nbsp;&nbsp;
+          y:&nbsp;<span id="sculpture_y">unknown</span>&nbsp;&nbsp;&nbsp;
+          z:&nbsp;<span id="sculpture_z">unknown</span>
+      </div>
   </div>
-  </div>
-    <br>
+
+  <br>
   <div class="section_container">
   <h2>Control</h2>
-  <div id="Control" class="section">
-  <h3>Set Mode</h3>
-  <div>
-  <div style="position:relative">
-      <div style="float:left"><select id="driverState"></select>&nbsp;&nbsp;</div>
-      <div style="float:left" id="manual_values">Manual Values:&nbsp;&nbsp;x:<input type="number" min=0 max=4095 width="20px" value=0  id="manual_x">
-                              y:<input type="number" min=0 max=4095 width="20px" value=0 id="manual_y">&nbsp;
-                              z:<input type="number"min=0 max=4095 width="20px" value=0  id="manual_z">&nbsp;</div>
-  </div><br>
-  </div>
-  <div>&nbsp;
-  <h3>Set Motion Playback</h3>
-  <select id="playbackSelect"></select>
-  <button id="playbackRename">Rename Playback</button>&nbsp;
-  <button id="playbackDelete">Delete Playback</button>
-  <div id="dialog" title="Rename Playback">Old Name: <span id="old_playback_name"></span><br>
-    New Name:<input type="text" id="new_playback_name"></div>
-  </div>
-  <br>
-  <h3>Record Playback</h3>
-    <button type="button" id="record">Record</button>
-  </div>
+      <div id="Control" class="section">
+          <h3>Set Mode</h3>
+          <div>
+              <div style="position:relative">
+                  <div style="float:left"><select id="driverState"></select>&nbsp;&nbsp;</div>
+                  <div style="float:left" id="manual_values">Manual Values:&nbsp;&nbsp;x:<input type="number" min=0 max=4095 width="20px" value=0  id="manual_x">
+                                          y:<input type="number" min=0 max=4095 width="20px" value=0 id="manual_y">&nbsp;
+                                          z:<input type="number"min=0 max=4095 width="20px" value=0  id="manual_z">&nbsp;</div>
+              </div><br>
+          </div>&nbsp;
+          <div>
+              <h3> Auto Attract </h3>
+              Enable AutoAttract &nbsp;<input type="checkbox" id="autoAttract" checked><br>
+              AutoAttract Timeout (sec) &nbsp;<input type="number" id="autoAttractTimeout" min=1 max=1000" value=60"><br>
+              AutoAttract Movement Cancel&nbsp;<input type="number" id="autoAttractTimeout" min=1 max=1000" value=60">
+          </div>
+          <div>&nbsp;
+              <h3>Set Motion Playback</h3>
+              Current Playback: &nbsp<select id="playbackSelect1"></select>
+          </div>
+          <br>
+          <div>
+              <h3>Edit Motion Playback</h3>
+              <select id="playbackSelect"></select>
+              <button id="playbackRename">Rename Playback</button>&nbsp;
+              <button id="playbackDelete">Delete Playback</button>
+              <div id="dialog" title="Rename Playback">Old Name: <span id="old_playback_name"></span><br>
+                New Name:<input type="text" id="new_playback_name">
+              </div>
+          </div>
+          <br>
+          <div>
+              <h3>Record Playback</h3>
+                <button type="button" id="record">Record</button>
+          </div>
+      </div>
   </div>
 <!--
   <br>
@@ -97,6 +112,8 @@ h3 {font-family:sans-serif; margin:0px; border:0px}
 
 console.log("TESTING TESTING");
 
+var states = ["passthrough", "nomove", "test", "attract","manual"];
+
 function getValues(){
     $.ajax({
         type: 'GET',
@@ -126,8 +143,9 @@ function getValues(){
             var select = $("select#driverState")
             select.html("");
 
-            for (option in data["states"]){
-                var val = data["states"][option]
+//            for (option in data["states"]){
+            for (option in states){
+                var val = states[option]
                 var desc = ""
                 if (val == "passthrough") {
                     desc = "Normal (passthrough)";

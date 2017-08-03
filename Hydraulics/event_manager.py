@@ -6,10 +6,9 @@ import Queue
 logger = logging.getLogger("events")
 
 '''
- {"event":{"msgType": ["spos"|
-                     "cpos"|
-                     "mode_change"],
-                     "x":<x>, "y":<y>, "z":<z>, :mode":<mode>'''
+Valid events
+ {"event":{"msgType": ["pos"
+                     "x":<x>, "y":<y>, "z":<z>, "xx":<s_x>, "yy":<s_y>, "zz":<s_z>'''
 
 ''' Listens on the event queue, and publishes events to listeners'''
 #arguably, this ought to be a general class that I just use....

@@ -1,7 +1,16 @@
-#!/usr/bin/python
+''' Communicate with sculpture hydraulics hardware. Reads directly from the linear 
+    position sensors in the controllers (input), writes to the PID controllers that
+    control the sculpture (output). Also reads current position of the sculpture
+    (feedback).
+    
+    The input and output channels use 4-20mA for signaling.
+    The feedback channel uses 0-10V.
+    
+    Based on sample code provided by WidgetLords for their raspberry pi 4-20mA analog
+    read/write boards. Communication with 4-20mA control hardware uses SPI interface
+    ("Pi-SPI") 
+'''
 
-# Based on sample code provided by WidgetLords for their raspberry pi 4-20mA analog 
-# read/write boards. Use SPI interface for communication ("Pi-SPI")
 try:
     import RPi.GPIO as GPIO
 except:
@@ -33,30 +42,33 @@ Scaler     = 100        # Scaler factor - all reading are * 100
 mASpanAdc  = 3723       # AD Counts to equal 20 mA
 VDCSpanAdc = 4095       # AD Counts to equal 6.6 VDC
 
+inputSource = "controller"
+feedbackSource = "sculpture"
 
-PASSTHROUGH = 0   # send inputs on to outputs
-ATTRACT     = 1   # send preset recording to outputs
-NO_MOVE     = 2   # just read inputs. Do not attempt to write to outputs
-LOOPBACK    = 3   # send test output to input
-TEST        = 4   # Internal test. Stream recorded data out to flame system
-MANUAL      = 5   # Manually set output values
+validInputs = "controller, recording, manual"
+validFeedbacks = "scuplture, recording"
 
-test_output_x = 0  
-test_output_y = 0
-test_output_z = 0
+outputEnabled = True
+
+manual_x = 0
+manual_y = 0
+manual_z = 0
+
 
 ioThread = None
 
-poll_interval = 1
-logger = logging.getLogger('hydraulics')
-autoAttractModeEnabled = True
+pollInterval = 1
+logger = logging.getLogger('hydraulics_drv')
 
-def init(interval = 1000, mode=PASSTHROUGH):
-    logger.info("Hydraulics driver init, interval {}, mode {}".format(interval, mode))
+def init(interval = 1000, enableOutput  = False):
+    logger.info("Hydraulics driver init, interval {}, output {}".format(interval, enableOutput))
     global ioThread
-    global poll_interval
-    poll_interval = float(interval)/float(1000)
-    spi = None
+    global pollInterval
+    global outputEnabled
+    
+    outputEnabled = enableOutput
+    pollInterval = float(interval)/float(1000)
+    
     spi = spidev.SpiDev()   # spidev normally installed with RPi 3 distro's
                             # Make Sure SPI is enabled in RPi preferences
                             
@@ -64,7 +76,7 @@ def init(interval = 1000, mode=PASSTHROUGH):
     GPIO.setmode(GPIO.BCM)  # Use RPi GPIO numbers
     GPIO.setwarnings(False) # disable warnings
 
-    ioThread = four_20mA_IO_Thread(spi, mode)
+    ioThread = four_20mA_IO_Thread(spi)
     ioThread.start()
     
 def shutdown():
@@ -73,18 +85,46 @@ def shutdown():
         logger.info("...Joining hydraulics driver thread")
         ioThread.stop()
         ioThread.join()
-   
-def setTestOutputs(x, y, z):
-    test_output_x = x
-    test_output_y = y
-    test_output_z = z
-    
-def autoAttractModeEnable(tf):
-    global autoAttractModeEnabled
-    autoAttractModeEnabled = tf
+        
+def getInputSource():
+    return inputSource
 
-def isAutoAttractModeEnabled():
-    return autoAttractModeEnabled
+def setInputSource(source):
+    ''' Input sources are either the controller ('controller'), a recorded motion file 
+       ('recording'), or manually specified values ('manual') '''
+    global inputSource
+    if source in validInputs:
+        inputSource = source
+    else:
+        logger.warn("Invalid input source {} specified, ignoring".format(source))
+        
+def getInputSources():
+    return validInputs
+
+def getFeedbackSources():
+    return validFeedbacks
+    
+def getFeedbackSource():
+    return feedbackSource
+    
+def setFeedbackSource(source):
+    ''' Feedback sources are either the sculpture ('sculpture'),or a recorded motion file 
+        ('recording') Recorded feedback sources are useful for testing flame sequence 
+        triggers when you don't need the sculpture to be moving '''
+    global feedbackSource
+    if source in validFeedbacks:
+        feedbackSource = source
+    else:
+        logger.warn("Invalid feedback source {} specified, ignoring".format(source))
+        
+def enableOutput(tf=True):
+    ''' Enable output to the sculpture'''
+    global outputEnabled
+    outputEnabled = (tf == True)
+    logger.info("Hydraulics output enable set to {}".format(outputEnabled))
+       
+def isOutputEnabled():
+    return outputEnabled
 
 def getCurrentInput():
     return adc[0], adc[1], adc[2]     # I don't care about extremely intermittent erroneous values here, so no mutex lock
@@ -93,90 +133,26 @@ def getVoltageInput():
     return VDC[4], VDC[5], VDC[6]
     
 def setManualPosition(x,y,z):
-    ioThread.setManualPosition(x,y,z)
+    global manual_x
+    global manual_y
+    global manual_z
+    
+    # XXX check for numerics
+    manual_x = int(x)
+    manual_y = int(y)
+    manual_z = int(z)
     
 def getManualPosition():
-    return ioThread.getManualPosition()
+    return manual_x, manual_y, manual_z
     
-def setState(state):    
-    global ioThread
-    logger.info("Setting hydraulics driver state to {}".format(state))
-    if (isinstance(state, basestring)):
-        if (state.lower() == "attract"):
-            ioThread.setState(ATTRACT)
-        elif (state.lower() == "passthrough"):
-            ioThread.setState(PASSTHROUGH)
-        elif (state.lower() == "nomove"):
-            ioThread.setState(NO_MOVE)
-        elif (state.lower() == "loopback"):
-            ioThread.setState(LOOPBACK)
-        elif (state.lower() == "test"):
-            ioThread.setState(TEST)
-        elif (state.lower() == "manual"):
-            ioThread.setState(MANUAL)
-        else:
-            logger.warn("Attempted to set hydraulics driver to unknown state {}".format(state))
-       
-# XXX FIXME - the conversion of states between strings and numbers is inane in python. Remove it.     
-def getAllStates():
-    return ["attract", "passthrough", "nomove", "loopback", "test", "manual"]
-    
-def getState():
-    global ioThread
-    intState = ioThread.getState()
-    if (intState == ATTRACT):
-        return "attract"
-    elif (intState == PASSTHROUGH):
-        return "passthrough"
-    elif (intState == NO_MOVE):
-        return "nomove"
-    elif (intState == LOOPBACK):
-        return "loopback"
-    elif (intState == TEST):
-        return "test"
-    elif (intState == MANUAL):
-        return "manual"
-    else:
-        return "unknown"
-        
-def startRecording(file):
-    logger.info("Start recording to {}".format(file))
-    ioThread.startRecording(file)
 
-def stopRecording():
-    logger.info("Recording stops")
-    ioThread.stopRecording()
-    
-def isRecording():
-    return ioThread.isRecording
-    
-def getLoopbackValues():
-    return test_output_x, test_output_y, test_output_z
-
-    
-def setLoopbackValues(x, y, z):
-    global test_output_x
-    global test_output_y
-    global test_output_z
-    
-    try:
-        test_output_x = int(x)
-        test_output_y = int(y)
-        test_output_z = int(z)
-    except NumberFormatException:
-        pass
 
 class four_20mA_IO_Thread(Thread):
-    def __init__(self, spi, mode):
+    def __init__(self, spi):
         Thread.__init__(self)
         self.spi = spi
         self.running = True
-        self.state = mode
-        self.isRecording   = False
-        self.recordingFile = None
-        self.fileMutex = Lock()
-        self.manualPosition = [0,0,0]
-        
+ 
         GPIO.setup(4,GPIO.OUT)       # Chip Select for the 2AO Analog Output module
         GPIO.output(4,1)
         GPIO.setup(22,GPIO.OUT)      # Chip Select for the 2nd 2AO Analog Output module
@@ -187,44 +163,12 @@ class four_20mA_IO_Thread(Thread):
     def stop(self):
         self.running = False
         
-    def setState(self, state):
-        if (state == PASSTHROUGH or state == ATTRACT or state == NO_MOVE or state == LOOPBACK or state == TEST or state==MANUAL):
-            self.state = state
-            
-    def getState(self):
-        return self.state
-    
-    def setManualPosition(self, x, y, z):
-        self.manualPosition[0] = x
-        self.manualPosition[1] = y
-        self.manualPosition[2] = z
-        
-    def getManualPosition(self):
-        return self.manualPosition
-        
-    def startRecording(self, file):
-        if self.isRecording:
-            self.stopRecording()
-        self.fileMutex.acquire()
-        self.isRecording = True
-        self.recordingFile = file
-        self.recordingStopTime = time.time() + 30 # maximum recording time 30 seconds.
-        self.fileMutex.release()
-    
-    def stopRecording(self):
-        self.fileMutex.acquire()
-        self.isRecording = False
-        if (self.recordingFile != None):
-            self.recordingFile.close()
-        self.recordingFile = None
-        self.fileMutex.release()
-        
-        
+      
     def run(self):
         while (self.running):
             try:                    
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
-                ''' Read from inputs '''
+                # Read input data
                 for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
                     self.readAdc(index)
                     adc[index] = self.readAdc(index)
@@ -235,45 +179,49 @@ class four_20mA_IO_Thread(Thread):
                     adc[index] = self.readAdc(index)
                     VDC[index] = (adc[index] * VDCSpan / VDCSpanAdc ) 
 #                    print "Reading %d = %0.2f VDC" % (index+1,((float)(VDC[index]))/Scaler)
-                ''' send sculpture position information to whoever is listening '''
-                if self.state == TEST:
+                if inputSource == "recording":
                     x,y,z = hydraulics_playback.getPlaybackData()  # test state: send from playback data
-                    event_manager.postEvent({"msgType":"pos", "x":x, "y":y, "z":z, "xx":x, "yy":y, "zz":z})
-                else:          
-                    event_manager.postEvent({"msgType":"pos", "x":mA[0], "y":mA[1], "z":mA[2],
-                                                    "         xx":VDC[4], "yy":VDC[5], "zz":VDC[6]})
-                # XXX - I need to be able to test this without the outputs hooked up!!!
-                '''  Write to outputs '''
-                if (self.state == PASSTHROUGH): 
-                    self.writeAnalogOutput(4,  0, adc[0])
-                    self.writeAnalogOutput(4,  1, adc[1])
-                    self.writeAnalogOutput(22, 0, adc[2])
-                elif (self.state == ATTRACT):
-                    x,y,z = hydraulics_playback.getPlaybackData()
+                elif inputSource == "manual":
+                    x = manual_x
+                    y = manual_y
+                    z = manual_z
+                else: # normal state, read from controller
+                    x = mA[0]
+                    y = mA[1]
+                    z = mA[2]
+                if feedbackSource == "recording":
+                    if inputSource == "recording": # NB - dont call getPlaybackData twice
+                        feedback_x = x
+                        feedback_y = y
+                        feedback_z = z 
+                    else:
+                        feedback_x, feedback_y, feedback_z = hydraulics_playback.getPlaybackData()
+                else:
+                    feedback_x = VDC[4]
+                    feedback_y = VDC[5]
+                    feedback_z = VDC[6]
+
+                # send sculpture position to whoever is listening
+                event_manager.postEvent({"msgType":"pos", 
+                                         "x":x, "y":y, "z":z, 
+                                         "xx":feedback_x, "yy":feedback_y, "zz":feedback_z})
+                                         
+                # write to output
+                if outputEnabled:
+#                    logger.debug("writing output, {}, {}, {}".format(x,y,z))
                     self.writeAnalogOutput(4,  0, x)
                     self.writeAnalogOutput(4,  1, y)
                     self.writeAnalogOutput(22, 0, z)
-                elif (self.state == LOOPBACK):
-                    self.writeAnalogOutput(4,  0, test_output_x)
-                    self.writeAnalogOutput(4,  1, test_output_y)
-                    self.writeAnalogOutput(22, 0, test_output_z)
-                elif (self.state == MANUAL):
-                    self.writeAnalogOutput(4, 0, self.manualPosition[0])
-                    self.writeAnalogOutput(4, 1, self.manualPosition[1])
-                    self.writeAnalogOutput(22, 0,self.manualPosition[2])
+
                 self.spi.close() # XXX open and then close? what?
-                if (self.isRecording):
-                    if time.time() >= self.recordingStopTime:
-                        self.stopRecording()
-                    else:
-                        self.fileMutex.acquire()
-                        self.recordingFile.write("%d\n%d\n%d\n" % (adc[0], adc[1], adc[2])) # XXX check this!
-                        self.fileMutex.release()
-                time.sleep(poll_interval)
+                
+                time.sleep(pollInterval)
             except Exception as e:
                 logger.exception("Error running spi driver")
                 #traceback.print_exc(file=sys.stdout)
-            
+ 
+        self.spi.close()
+        
 
     def readAdc(self, channel):     # SPI Write and Read transfer for channel no.
                                     # Chip Select for Analog Input Module is GPIO-7 (CE_1)
@@ -309,12 +257,33 @@ class four_20mA_IO_Thread(Thread):
         
 
 
+def testHandler(msg):
+    logger.info("Received msg: {}".format(msg))
+            
+
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
     try:
         print "Start Pi-SPI Test program"
         print "Press CTRL C to exit"
-        init()           
+        event_manager.init()
+        event_manager.addListener(testHandler, "pos")
+        init(50)
+        time.sleep(0.1)   
+        setInputSource("manual")
+        time.sleep(0.1)
+        print "Input Sources are", getInputSources()
+        setInputSource("manual")
+        setManualPosition(100, 200, 300)
+        time.sleep(0.1)
+        enableOutput(True)
+        time.sleep(0.1) 
     except KeyboardInterrupt:   # Press CTRL C to exit Program
-        spi.close()
-        sys.exit(0)
-            
+        pass
+    except Exception:
+        logger.exception("Unexpected test exception")
+        
+    shutdown()
+    event_manager.shutdown()
+    sys.exit(0)
+    

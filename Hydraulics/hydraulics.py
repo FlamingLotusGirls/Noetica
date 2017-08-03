@@ -11,6 +11,7 @@ import hydraulics_playback
 import hydraulics_webserver
 import hydraulics_stream
 import event_manager
+import attract_manager
 
 # default parameters - configuration file overrides
 HTTP_PORT = 9000 
@@ -54,7 +55,10 @@ if __name__ == '__main__':
         hydraulics_drv.init(HYDRAULICS_POLL_INTERVAL)
 
         # setup playback - NB - this is a set of utility functions, not own thread
-        hydraulics_playback.init(HOME_DIR + PLAYBACK_DIR)        
+        hydraulics_playback.init(HOME_DIR + PLAYBACK_DIR)    
+        
+        # set up attract mode
+        attract_manager.init()    
 
         # initialize httpserver 
         httpd = BaseHTTPServer.HTTPServer(("", HTTP_PORT), hydraulics_webserver.HydraulicsHandler)
@@ -69,4 +73,5 @@ if __name__ == '__main__':
 
     hydraulics_drv.shutdown()
     hydraulics_stream.shutdown()
+    attract_manager.shutdown()
     event_manager.shutdown()
