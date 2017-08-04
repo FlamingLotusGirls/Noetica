@@ -123,12 +123,15 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         attract_manager.attractModeTimeout(float(postvars["attractModeTimeout"][0]))
                     if "autoAttractEnabled" in postvars:
                         attract_manager.autoAttractModeEnabled(postvars["autoAttractEnabled"][0].lower() == "true")
-                    if "playback" in postvars:
-                        doPlay = postvars["playback"][0].lower()
-                        if doPlay == "true":
-                            attract_manager.startAttractMode(False) # False means not interruptable
-                        elif doPlay == "false":
-                            attract_manager.stopAttractMode()                
+                    if "state" in postvars:
+                        newState = postvars["state"][0].lower()
+                        setState(newState)
+#                     if "playback" in postvars:
+#                         doPlay = postvars["playback"][0].lower()
+#                         if doPlay == "true":
+#                             attract_manager.startAttractMode(False) # False means not interruptable
+#                         elif doPlay == "false":
+#                             attract_manager.stopAttractMode()                
                     if "currentPlayback" in postvars:
                         newPlayback = postvars["currentPlayback"][0]
                         hydraulics_playback.setCurrentPlayback(newPlayback)
@@ -200,8 +203,6 @@ def getHydraulicsState():
     retObj["manual_y"]        = manualPosition[1]
     retObj["manual_z"]        = manualPosition[2]
 
-    print ( "Adding currentState to the data {} ({})".format(retObj["currentPlayback"],hydraulics_playback.getCurrentPlayback()) )
-    
     return retObj
 
 gValidStates = ["passthrough", "nomove", "attract", "manual", "test"]
@@ -209,10 +210,8 @@ def getAllStates():
     ''' Get all possible states. States are a high level concept found only in the REST
     API, and can be a combination of various states at the lower level'''
     return gValidStates
-    
-# XXX - single playback in attract mode, then swap to manual? This should be an option!
-# FIXME
-# XXX - do we loop through
+
+
 def setState(state):
     if state in gValidStates:
         if state == "passthrough":
@@ -241,6 +240,9 @@ def getCurrentState():
     feedbackSource = hydraulics_drv.getFeedbackSource()
     enabled = hydraulics_drv.isOutputEnabled()
     state = "mixed"
+    
+#     logger.debug("Get current state. Input source is {}, feedback source is {}, enabled is {}".format(
+#                     inputSource,feedbackSource,enabled))
     
     if not enabled and feedbackSource == "recording":
         state = "test"
@@ -316,11 +318,12 @@ class WebserverTestCase(unittest.TestCase):
         r = requests.post(baseURL + "playbacks", data={"manual_x":0,"manual_y":0, "manual_z":0})  
         
     def test_play1(self):
-        r = requests.post(baseURL, {"playback":True})      
+        r = requests.post(baseURL, {"state":"attract"})      
         self.assertTrue(r.status_code == 200)         
         r = requests.get(baseURL)
         self.assertTrue(r.status_code == 200)
         print r.json()
+        print r.json()["currentState"]
         self.assertTrue(r.json()["currentState"] == "attract")
         r = requests.post(baseURL, {"playback":False}) 
              
@@ -341,6 +344,8 @@ if __name__ == "__main__":
         httpd = BaseHTTPServer.HTTPServer(("", 9000), HydraulicsHandler)
         httpProcess = Process(target = httpd.serve_forever)
         httpProcess.start()
+        
+        setState("nomove")
     
         unittest.main()
         print "TIMEOUT"
