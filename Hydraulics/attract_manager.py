@@ -58,7 +58,7 @@ def inAttractMode():
 # (would have to change the playback manager)
 
 def startAttractMode(interruptable=True):
-    global gInattractMode
+    global gInAttractMode
     global gAttractModeTimeout
     global gOriginalDriverInput
     global gInterruptable
