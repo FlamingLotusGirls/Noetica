@@ -10,6 +10,12 @@
 </head>
 <body>
   <div class="page-container">
+    <div class="header-container">
+      <label title="Select this to poll for data from the server">
+        Polling <input type="checkbox" class="polling-checkbox">
+      </label>
+      <button class="invert-button" title="Select this to invert the page colors for night time">Invert colors</button>
+    </div>
     <div class="main-container">
       <div class="flame-container">
         <div class="poofer-display-container">
@@ -93,8 +99,12 @@
         </div>
         <div class="poofer-controls-container">
           <div class="poofer-main-toggle-container">
-            <label>All Poofers
-              <input type="checkbox" class="poofer-main-toggle-button">
+            <div>All Poofers</div>
+            <label class="switch-outer-label">
+              <label class="switch">
+                <input type="checkbox" class="poofer-main-toggle-button">
+                <span class="slider round"></span>
+              </label>
             </label>
           </div>
           <div class="poofer-individual-toggle-container">
@@ -103,8 +113,8 @@
               <div class="poofer-individual-toggle-button-container">
                 <button class="poofer-individual-toggle-button">Enable</button>
               </div>
-              <div class="selected-poofer-display-container">
-                <div class="selected-poofer-label">Selected Poofer</div>
+              <div class="poofer-selected-display-container">
+                <div class="poofer-selected-label">Selected Poofer</div>
                 <div class="poofer-selected-display-field">No poofer selected</div>
               </div>
             </div>
@@ -116,26 +126,21 @@
         </div>
       </div>
       <div class="hydraulics-container">
-        <div class="header-container">
-          <label title="Select this to poll for data from the server">
-            Polling <input type="checkbox" class="polling-checkbox">
-          </label>
-          <button class="invert-button" title="Select this to invert the page colors for night time">Invert colors</button>
-        </div>
         <div class="hydraulics-main-toggle-container">
-          <label>Hydraulics
-            <input type="checkbox" class="hydraulics-main-toggle-button">
+          <div>Hydraulics</div>
+          <label class="switch-outer-label">
+            <label class="switch">
+              <input type="checkbox" class="hydraulics-main-toggle-button">
+              <span class="slider round"></span>
+            </label>
           </label>
         </div>
         <div class="hydraulics-central-controls-container">
           <div class="hydraulics-central-left-controls-container">
             <div class="hydraulics-record-toggle-container">
-              <label>Record
-                <button class="hydraulics-record-toggle-button"></button>
+              <label>
+                <button class="hydraulics-record-toggle-button">Record</button>
               </label>
-            </div>
-            <div class="hydraulics-name-control-container">
-              <label>Name <input type="text"></label>
             </div>
           </div>
           <div class="hydraulics-position-display-container">
@@ -150,8 +155,12 @@
         </div>
         <div class="hydraulics-bottom-controls-container">
           <div class="hydraulics-attract-toggle-container">
-            <label>Attract Mode
-              <input type="checkbox" class="hydraulics-attract-toggle-button">
+            <div>Attract Mode</div>
+            <label class="switch-outer-label">
+              <label class="switch">
+                <input type="checkbox" class="hydraulics-attract-toggle-button">
+                <span class="slider round"></span>
+              </label>
             </label>
           </div>
           <div class="hydraulics-attract-controls-container">
@@ -161,7 +170,9 @@
             <ul class="hydraulics-attract-file-picker sequence-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">
             </ul>
           </div>
-          <div class="hydraulics-attract-trash-container">
+          <div class="hydraulics-attract-file-picker-controls-container">
+            <label><input type="text" class="hydraulics-attract-name-field"></label>
+            <button class="hydraulics-attract-rename-button">Rename</button>
             <button class="hydraulics-attract-trash-button">Trash</button>
           </div>
         </div>

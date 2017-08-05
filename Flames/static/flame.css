@@ -13,9 +13,11 @@ body {
 .inverted {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
-.inverted .poofer-enabled {
-  filter: invert(100%); /* Don't invert poofer background */
+/* Exceptions to inverted style */
+.inverted .poofer-enabled, .inverted .switch .slider {
+  filter: invert(100%);
 }
+
 .center {
   text-align: center;
 }
@@ -26,6 +28,9 @@ body {
 }
 .page-container {
   height: 100%;
+}
+.header-container {
+  float: right;
 }
 .main-container {
   display: flex;
@@ -57,6 +62,9 @@ body {
 .poofer--blank {
   border: none;
 }
+.poofer-label {
+  font-weight: bold;
+}
 .poofer-controls-container {
   margin-left: 2em;
   display:flex;
@@ -70,9 +78,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-.poofer-individual-toggle-header {
-  text-transform: uppercase;
-}
 .poofer-individual-toggle-main {
   display: flex;
   align-items: center; /* vertically centers the children */
@@ -80,13 +85,13 @@ body {
 .poofer-individual-toggle-button {
   width: 5em;
 }
-.selected-poofer-display-container {
+.poofer-selected-display-container {
   display: flex;
   flex-direction: column;
   margin-left: 1em;
   text-align: center;
 }
-.selected-poofer-label {
+.poofer-selected-label {
   font-size: .25em;
 }
 .poofer-selected-display-field {
@@ -96,6 +101,7 @@ body {
 .hydraulics-label {
   border: 1px solid black;
   width: 2em;
+  text-align: right;
 }
 .hydraulics-central-controls-container {
   display:flex;
@@ -123,3 +129,61 @@ body {
   background-color: #eeeeee;
   color: #000000;
 }
+
+/* Toggle switches */
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {display:none;}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #00ff00;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #00ff00;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+/* End toggle switches */

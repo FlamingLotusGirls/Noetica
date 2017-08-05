@@ -15,7 +15,12 @@ $(function ($) {
   var selectedPoofer = null
   var inverted = false
   var selectedFilenames = {}
-  var hydraulicsAttractMode = false
+  var toggleStates = {
+    'poofer-main': true,
+    'hydraulics-main': true,
+    'hydraulics-attract': true
+  }
+  var hydraulicsAttractModeActive = false
   var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
 
   // jQuery helpers
@@ -25,7 +30,16 @@ $(function ($) {
 
   // Helper functions
   var flameUrl = function(endpoint) {
-    return `http://${flameHost}/${endpoint}`
+    if (endpoint === undefined) {
+      endpoint = ''
+    }
+    return `http://${flameHost}/flame${endpoint}`
+  }
+  var hydraulicsUrl = function(endpoint) {
+    if (endpoint === undefined) {
+      endpoint = ''
+    }
+    return `http://${flameHost}/hydraulics${endpoint}`
   }
   var getOrSetFilename = function(prefix, filename) {
     if (filename !== undefined) {
@@ -46,6 +60,14 @@ $(function ($) {
   }
 
   // Display state update functions
+  var updateToggleState = function(prefix) {
+    var $element = $(`.${prefix}-toggle-button`)
+    var state = toggleStates[prefix]
+    $element.prop('checked', state)
+  }
+  var updateToggleStates = function() {
+    Object.keys(toggleStates).map(updateToggleState)
+  }
   var updatePooferToggleButtonState = function() {
     var enabled = !selectedPoofer || selectedPoofer.enabled
     $('.poofer-individual-toggle-button').text(enabled ? 'Disable' : 'Enable')
@@ -118,16 +140,19 @@ $(function ($) {
     updateFilePicker(prefixes.poofer, pooferSequenceFiles)
   }
   var updateHydraulicsAttractPlayMode = function() {
-    var oldMode = hydraulicsAttractMode
+    var oldMode = hydraulicsAttractModeActive
+    var $button = $('.hydraulics-attract-play-stop-button')
     if (!selectedHydraulicsFilename()) {
-      hydraulicsAttractMode = false
-      $('.hydraulics-attract-play-stop-button').attr('disabled', true)
-      $('.hydraulics-attract-play-stop-button').text('Start')
+      hydraulicsAttractModeActive = false
+      $button.attr('disabled', true)
+      $button.text('Start')
+    } else if (!toggleStates['hydraulics-attract']) {
+      $button.attr('disabled', true)
     } else {
-      $('.hydraulics-attract-play-stop-button').attr('disabled', false)
+      $button.attr('disabled', false)
     }
-    $('.hydraulics-attract-play-stop-button').text(hydraulicsAttractMode ? 'Stop' : 'Start')
-    if (hydraulicsAttractMode !== oldMode) {
+    $button.text(hydraulicsAttractModeActive ? 'Stop' : 'Start')
+    if (hydraulicsAttractModeActive !== oldMode) {
       postHydraulicsAttractMode()
     }
   }
@@ -139,6 +164,7 @@ $(function ($) {
     // in just the right places, this function just updates everything and is called
     // when anything changes. Where possible, functions called from here should be
     // written to not force refreshes of state that didn't actually change.
+    updateToggleStates()
     updateSelectedPooferDependentState()
     updateAllPoofersDisplayState()
     updateHydraulicsDisplayState()
@@ -200,7 +226,7 @@ $(function ($) {
       selectedPoofer.enabled = !selectedPoofer.enabled
       updatePooferDisplayState(selectedPoofer)
       updatePooferToggleButtonState()
-      $.post(flameUrl(`poofers/${selectedPoofer.name}`), { enabled: selectedPoofer.enabled })
+      $.post(flameUrl(`/poofers/${selectedPoofer.name}`), { enabled: selectedPoofer.enabled })
     }
   })
   Object.keys(prefixes).forEach(function(prefixKey) {
@@ -220,40 +246,72 @@ $(function ($) {
     })
   })
   $('.hydraulics-attract-play-stop-button').on('click', function() {
-    hydraulicsAttractMode = !hydraulicsAttractMode
+    hydraulicsAttractModeActive = !hydraulicsAttractModeActive
     postHydraulicsAttractMode()
     updateAllUIState()
+  })
+  Object.keys(toggleStates).forEach(function(p) {
+    var prefix = p
+    $(`.${prefix}-toggle-button`).on('click', function() {
+      toggleStates[prefix] = !toggleStates[prefix]
+      postToggleState(prefix)
+      updateAllUIState()
+    })
+  })
+  $('.hydraulics-attract-rename-button').on('click', function () {
+    postHydraulicsAttractRename()
+  })
+  $('.hydraulics-attract-trash-button').on('click', function () {
+    postHydraulicsAttractTrash()
   })
 
   // Ajax functions
   var postHydraulicsAttractMode = function() {
-    if (hydraulicsAttractMode && selectedHydraulicsFilename()) {
-      $.post(flameUrl('hydraulics'), {
+    if (hydraulicsAttractModeActive && selectedHydraulicsFilename()) {
+      $.post(hydraulicsUrl(), {
         state: 1,
         currentPlayback: selectedHydraulicsFilename()
       })
     } else {
       // just in case, make state consistent
-      hydraulicsAttractMode = false
-      $.post(flameUrl('hydraulics'), {
+      hydraulicsAttractModeActive = false
+      $.post(hydraulicsUrl(), {
         state: 0
       })
     }
+  }
+  var postHydraulicsAttractRename = function() {
+    var oldName = selectedHydraulicsFilename()
+    var newName = $('.hydraulics-attract-name-field').val()
+    if (!oldName || !newName) {
+      return
+    }
+    $.post(hydraulicsUrl(`/playbacks/${oldName}`), {
+      newName: newName
+    })
+  }
+  var postHydraulicsAttractTrash = function() {
+    var filename = selectedHydraulicsFilename()
+    console.log('deleting ' + filename)
   }
   var postAttractFile = function(prefix) {
     var filename = selectedFilenames[prefix]
     if (filename) {
       if (prefix === prefixes.hydraulics) {
-        $.post(flameUrl('hydraulics'), {
+        $.post(hydraulicsUrl(), {
           currentPlayback: filename
         })
       } else if (prefix === prefixes.poofer) {
-        $.post(flameUrl('flame'), {
+        $.post(flameUrl(), {
           currentPlayback: filename
         })
       }
     }
   }
+  var postToggleState = function(prefix) {
+    console.log('posting toggle state')
+  }
+
 
   // Ajax callbacks
   var flameDataCallback = function(data) {
@@ -265,23 +323,12 @@ $(function ($) {
     updateAllUIState()
   }
 
-  // Ajax promise factories
-  var get = function(endpoint) {
-    return $.get(flameUrl(endpoint))
-  }
-  var getFlameData = function() {
-    return get('flame')
-  }
-  var getHydraulicsData = function() {
-    return get('hydraulics')
-  }
-
   // Setup polling
   var pollingFunction = function() {
     var polling = $('.polling-checkbox').is(':checked')
     if (!polling) return
-    getFlameData().done(flameDataCallback)
-    getHydraulicsData().done(hydraulicsDataCallback)
+    $.get(flameUrl()).done(flameDataCallback)
+    $.get(hydraulicsUrl()).done(hydraulicsDataCallback)
   }
   setInterval(pollingFunction, pollingInterval)
 
