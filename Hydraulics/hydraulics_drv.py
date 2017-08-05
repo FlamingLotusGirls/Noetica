@@ -35,6 +35,7 @@ import event_manager
 adc = [0,0,0,0,0,0,0,0]
 mA  = [0,0,0,0,0,0,0,0]
 VDC = [0,0,0,0,0,0,0,0]
+control = [0,0,0]
 
 mASpan     = 2000       # mA Full Scale = 20.00 mA
 VDCSpan    = 660        # VDC Full Scale = 6.6 VDC
@@ -46,7 +47,7 @@ inputSource = "controller"
 feedbackSource = "sculpture"
 
 validInputs = "controller, recording, manual"
-validFeedbacks = "scuplture, recording"
+validFeedbacks = "sculpture, recording"
 
 outputEnabled = True
 
@@ -60,7 +61,7 @@ ioThread = None
 pollInterval = 1
 logger = logging.getLogger('hydraulics_drv')
 
-def init(interval = 1000, enableOutput  = False):
+def init(interval = 1000, enableOutput = False):
     logger.info("Hydraulics driver init, interval {}, output {}".format(interval, enableOutput))
     global ioThread
     global pollInterval
@@ -95,6 +96,7 @@ def setInputSource(source):
     global inputSource
     if source in validInputs:
         inputSource = source
+        logger.debug("Input source set to {}".format(source))
     else:
         logger.warn("Invalid input source {} specified, ignoring".format(source))
         
@@ -125,6 +127,12 @@ def enableOutput(tf=True):
        
 def isOutputEnabled():
     return outputEnabled
+    
+def getControlInput():
+    return control[0], control[1], control[2]
+    
+def getSculpturePosition():
+    return VDC[4], VDC[5], VDC[6] 
 
 def getCurrentInput():
     return adc[0], adc[1], adc[2]     # I don't care about extremely intermittent erroneous values here, so no mutex lock
@@ -165,8 +173,9 @@ class four_20mA_IO_Thread(Thread):
         
       
     def run(self):
+        global control
         while (self.running):
-            try:                    
+            try:             
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 # Read input data
                 for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
@@ -180,38 +189,38 @@ class four_20mA_IO_Thread(Thread):
                     VDC[index] = (adc[index] * VDCSpan / VDCSpanAdc ) 
 #                    print "Reading %d = %0.2f VDC" % (index+1,((float)(VDC[index]))/Scaler)
                 if inputSource == "recording":
-                    x,y,z = hydraulics_playback.getPlaybackData()  # test state: send from playback data
+                    control[0],control[1],control[2] = hydraulics_playback.getPlaybackData()  # test state: send from playback data
                 elif inputSource == "manual":
-                    x = manual_x
-                    y = manual_y
-                    z = manual_z
+                    control[0] = manual_x
+                    control[1] = manual_y
+                    control[2] = manual_z
                 else: # normal state, read from controller
-                    x = mA[0]
-                    y = mA[1]
-                    z = mA[2]
+                    control[0] = mA[0]
+                    control[1] = mA[1]
+                    control[2] = mA[2]
                 if feedbackSource == "recording":
                     if inputSource == "recording": # NB - dont call getPlaybackData twice
-                        feedback_x = x
-                        feedback_y = y
-                        feedback_z = z 
+                        feedback_x = control[0]
+                        feedback_y = control[1]
+                        feedback_z = control[2] 
                     else:
                         feedback_x, feedback_y, feedback_z = hydraulics_playback.getPlaybackData()
                 else:
                     feedback_x = VDC[4]
                     feedback_y = VDC[5]
                     feedback_z = VDC[6]
-
+                    
                 # send sculpture position to whoever is listening
                 event_manager.postEvent({"msgType":"pos", 
-                                         "x":x, "y":y, "z":z, 
+                                         "x":control[0], "y":control[1], "z":control[2], 
                                          "xx":feedback_x, "yy":feedback_y, "zz":feedback_z})
                                          
                 # write to output
                 if outputEnabled:
 #                    logger.debug("writing output, {}, {}, {}".format(x,y,z))
-                    self.writeAnalogOutput(4,  0, x)
-                    self.writeAnalogOutput(4,  1, y)
-                    self.writeAnalogOutput(22, 0, z)
+                    self.writeAnalogOutput(4,  0, control[0])
+                    self.writeAnalogOutput(4,  1, control[1])
+                    self.writeAnalogOutput(22, 0, control[2])
 
                 self.spi.close() # XXX open and then close? what?
                 

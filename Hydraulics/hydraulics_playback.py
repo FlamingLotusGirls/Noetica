@@ -52,7 +52,6 @@ def init(playbackDirectory=playbackDir, playbackName=None):
                 badFiles.append(fileName)
             elif fileName == "currentPlayback.rec":
                 potentialCurrentPlayback = os.path.realpath(playbackDir + "/currentPlayback.rec")
-                print "CURRENT PLAYBACK? AT " + os.path.basename(potentialCurrentPlayback)
                 badFiles.append(fileName)
             else:
                 fileName = fileName[:-4]
@@ -210,8 +209,10 @@ def getPlaybackData():
     playbackDataIdx = playbackDataIdx + 3
     if (len(playbackData) <= playbackDataIdx):
         playbackDataIdx = 0
+#        logger.info("End of playback data. May wrap. May not")
         # XXX - message to system - end of playback. Can trigger playback stop
         
+#    logger.debug("Playback returns {} {} {}, idx is {}, playback file is {}".format(x,y,z, playbackDataIdx, currentPlayback))
     return x, y, z
     
 def _getNewRecordingFile():

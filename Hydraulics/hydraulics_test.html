@@ -58,11 +58,11 @@ h3 {font-family:sans-serif; margin:0px; border:0px}
               <h3> Auto Attract </h3>
               Enable AutoAttract &nbsp;<input type="checkbox" id="autoAttract" checked><br>
               AutoAttract Timeout (sec) &nbsp;<input type="number" id="autoAttractTimeout" min=1 max=1000" value=60"><br>
-              AutoAttract Movement Cancel&nbsp;<input type="number" id="autoAttractTimeout" min=1 max=1000" value=60">
+              AutoAttract Movement Cancel&nbsp;<input type="number" id="autoAttractMovementCancel" min=1 max=1000" value=60">
           </div>
           <div>&nbsp;
               <h3>Set Motion Playback</h3>
-              Current Playback: &nbsp<select id="playbackSelect1"></select>
+              Current Playback: &nbsp<select id="currentPlayback"></select>
           </div>
           <br>
           <div>
@@ -120,26 +120,25 @@ function getValues(){
         url:"/hydraulics",
         success: function(data, status, req) {
             console.log(data);
-            $("#controller_x").html(data["x"]);
-            $("#controller_y").html(data["y"]);
-            $("#controller_z").html(data["z"]);
+            $("#controller_x").html(data["control_x"]);
+            $("#controller_y").html(data["control_y"]);
+            $("#controller_z").html(data["control_z"]);
             
-            $("#sculpture_x").html(data["pid_x"]);
-            $("#sculpture_y").html(data["pid_y"]);
-            $("#sculpture_z").html(data["pid_z"]);
+            $("#sculpture_x").html(data["sculpture_x"]);
+            $("#sculpture_y").html(data["sculpture_y"]);
+            $("#sculpture_z").html(data["sculpture_z"]);
             
             $("#manual_x").val(data["manual_x"]);
             $("#manual_y").val(data["manual_y"]);
             $("#manual_z").val(data["manual_z"]);
             
             console.log("MANUAL X is " + data["manual_x"]);
- 
- /*                    
-            $("#loopback_x").val(data["loopback_x"]);
-            $("#loopback_y").val(data["loopback_y"]);
-            $("#loopback_z").val(data["loopback_z"]);
+            console.log("attract enabled is " + data["autoAttractEnabled"]);
             
-  */          
+            $("#autoAttract").attr("checked", data["autoAttractEnabled"]);
+            $("#autoAttractTimeout").val(data["attractModeTimeout"]);
+            $("#autoAttractMovementCancel").val(data["attractModeDelta"]);    
+ 
             var select = $("select#driverState")
             select.html("");
 
@@ -166,7 +165,19 @@ function getValues(){
             }
             select.val(data["currentState"]);
             
+            // set up playback rename/delete
             var select = $("select#playbackSelect")
+            select.html("");
+            for (option in data["playbacks"]){
+                val = data["playbacks"][option]
+                select.append($("<option>")
+                    .val(val)
+                    .html(val));
+            }
+            //select.val(data["currentPlayback"]);
+
+            // set up playback for playing
+            var select = $("select#currentPlayback")
             select.html("");
             for (option in data["playbacks"]){
                 val = data["playbacks"][option]
@@ -284,9 +295,8 @@ function stopRecording() {
 function renamePlayback() {
     $.ajax({
         type: 'POST',
-        url: "/hydraulics",  
-        data: {"oldPlaybackName":$("#playbackSelect").val(),
-               "newPlaybackName":$("#new_playback_name").val()},
+        url: "/hydraulics/playbacks/" + $("#playbackSelect").val(),  
+        data: {"newName":$("#new_playback_name").val()},
         success: function(data, status, req) {
             getValues();
         },
@@ -326,7 +336,53 @@ function setManualValues(x,y,z) {
         }
     });
 }
- 
+
+function setAutoAttract(tf) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"autoAttractEnabled":tf
+              },
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting auto attract state");
+        }
+    });
+}
+
+function setAutoAttractTimeout(val) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"attractModeTimeout":val
+              },
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting auto attract timeout");
+        }
+    });
+}
+
+
+function setAutoAttractMovementDelta(val) {
+    $.ajax({
+        type: 'POST',
+        url: "/hydraulics",  
+        data: {"attractModeDelta":val
+              },
+        success: function(data, status, req) {
+            getValues();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error setting auto attract delta");
+        }
+    });
+}
+
 
 
 $(document).ready(function() {
@@ -340,13 +396,13 @@ $(document).ready(function() {
             $("#manual_values").hide()
         }
 */
-        setDriverState($("#driverState option:selected").val(), 
-                       $("#manual_x"),
-                       $("#manual_y"),
-                       $("#manual_z"));
+        setDriverState(stateValue, 
+                       $("#manual_x").val(),
+                       $("#manual_y").val(),
+                       $("#manual_z").val());
     });
-    $("#playbackSelect").change(function(){
-        setCurrentPlayback($("#playbackSelect option:selected").val());
+    $("#currentPlayback").change(function(){
+        setCurrentPlayback($("#currentPlayback option:selected").val());
     });
 
     $("#record").click(function(){
@@ -359,9 +415,26 @@ $(document).ready(function() {
         }
     })
     
-    $("#loopback_button").click(function(){
-        setLoopbackTestValues($("#loopback_x").val(), $("#loopback_y").val(), $("#loopback_z").val());
+    $("#autoAttract").change(function() {
+        setAutoAttract($(this).attr("checked"));
+
     });
+    
+
+    $("#autoAttractTimeout").change(function() {
+        setAutoAttractTimeout($(this).val());
+
+    });
+ 
+     $("#autoAttractMovementCancel").change(function() {
+        setAutoAttractMovementDelta($(this).val());
+
+    });
+
+    
+/*    $("#loopback_button").click(function(){
+        setLoopbackTestValues($("#loopback_x").val(), $("#loopback_y").val(), $("#loopback_z").val());
+    }); */
     
    $( "#dialog" ).dialog({ autoOpen: false,
                            modal:true,

@@ -8,6 +8,7 @@ import hydraulics_drv
 import hydraulics_playback
 import logging
 import unittest
+import time
 
 import attract_manager
 
@@ -76,7 +77,10 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 elif (len(pathArray) == 2 and pathArray[1] == "playbacks"):
                     self.send200(getPlaybacks())
                 elif (len(pathArray) == 2 and pathArray[1] == "position"):
-                    self.send200(getHydraulicsPosition())
+                    x,y,z = getControlPosition()
+                    xx, yy, zz = getSculpturePosition()
+                    self.send200({"control_x":x, "control_y":y, "control_z":z,
+                                  "sculpture_x":xx, "sculpture_y":yy, "sculpture_z":zz})
                 else:
                     self.sendError(404)
             else:
@@ -134,6 +138,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 #                             attract_manager.stopAttractMode()                
                     if "currentPlayback" in postvars:
                         newPlayback = postvars["currentPlayback"][0]
+                        logger.debug("Setting current playback to {}".format(newPlayback))
                         hydraulics_playback.setCurrentPlayback(newPlayback)
                     
                     
@@ -168,8 +173,8 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         pass
 
 def getHydraulicsState():
-    control_x, control_y, control_z = hydraulics_drv.getCurrentInput()
-    pid_x, pid_y, pid_z = hydraulics_drv.getVoltageInput()
+    control_x, control_y, control_z = hydraulics_drv.getControlInput()
+    sculpture_x, sculpture_y, sculpture_z = hydraulics_drv.getSculpturePosition()
     
 #    loopback_x, loopback_y, loopback_z = hydraulics_drv.getLoopbackValues()
     
@@ -177,12 +182,12 @@ def getHydraulicsState():
     
     retObj = {}
     
-    retObj["x"] = control_x
-    retObj["y"] = control_y
-    retObj["z"] = control_z
-    retObj["pid_x"] = pid_x
-    retObj["pid_y"] = pid_y
-    retObj["pid_z"] = pid_z
+    retObj["control_x"] = control_x
+    retObj["control_y"] = control_y
+    retObj["control_z"] = control_z
+    retObj["sculpture_x"] = sculpture_x
+    retObj["sculpture_y"] = sculpture_y
+    retObj["sculpture_z"] = sculpture_z
     retObj["playbacks"]       = hydraulics_playback.getPlaybackList()
     retObj["currentPlayback"] = hydraulics_playback.getCurrentPlayback()
     retObj["isRecording"]     = hydraulics_playback.isRecording()
@@ -221,9 +226,9 @@ def setState(state):
         elif state == "nomove":
             hydraulics_drv.enableOutput(False)
         elif state == "attract": 
-            attract_manager.startAttractMode(False)
-            hydraulics_drv.enableOutput(True)
-            hydraulics_drv.setFeedbackSource("sculpture")
+             attract_manager.startAttractMode(False)
+             hydraulics_drv.enableOutput(True)
+             hydraulics_drv.setFeedbackSource("sculpture")
         elif state == "manual":
             hydraulics_drv.setInputSource("manual")
             hydraulics_drv.enableOutput(True)
@@ -259,15 +264,12 @@ def getCurrentState():
     
     return state    
     
-def getHydraulicsPosition():
-    pos_x, pos_y, pos_z = hydraulics_drv.getCurrentInput()
-    retObj = {}
-    
-    retObj["x"] = pos_x
-    retObj["y"] = pos_y
-    retObj["z"] = pos_z
-    
-    return retObj
+def getSculpturePosition():
+    return hydraulics_drv.getSculpturePosition()
+
+def getControlPosition():
+    return hydraulics_drv.getControlInput()
+
 
 baseURL = "http://localhost:9000/hydraulics/"
 
@@ -311,7 +313,6 @@ class WebserverTestCase(unittest.TestCase):
         r = requests.get(baseURL)
         self.assertTrue(r.status_code == 200)
         json = r.json()
-        print ("JSON IS", json["manual_x"])
         self.assertTrue(json["manual_x"] == 50)
         self.assertTrue(json["manual_y"] == 55)
         self.assertTrue(json["manual_z"] == 66)
@@ -325,15 +326,33 @@ class WebserverTestCase(unittest.TestCase):
         print r.json()
         print r.json()["currentState"]
         self.assertTrue(r.json()["currentState"] == "attract")
-        r = requests.post(baseURL, {"playback":False}) 
-             
+        time.sleep(1)
+        r = requests.post(baseURL, {"state":"passthrough"}) 
+        r = requests.get(baseURL)
+        self.assertTrue(r.json()["currentState"] == "passthrough")  
+        
+    def test_play2(self):
+        r = requests.post(baseURL, {"state":"attract"})   
+        time.sleep(2)
+        r = requests.get(baseURL)
+        json = r.json()
+        print json["control_x"]
+        print json["control_y"]
+        print json["control_z"]
+        print "TEST"
+        hydraulics_drv.setInputSource("recording")
+        print hydraulics_drv.getInputSource()
+        self.assertTrue(json["control_x"] == 10)
+        self.assertTrue(json["control_y"] == 10)
+        self.assertTrue(json["control_z"] == 10)
+                 
 def getPlaybacks():
     return hydraulics_playback.getPlaybackList()
     
 if __name__ == "__main__":
     import requests
     import sys
-    from multiprocessing import Process
+    from threading import Thread
     import event_manager
     import hydraulics_playback
     
@@ -341,19 +360,24 @@ if __name__ == "__main__":
     try: 
         event_manager.init()
         hydraulics_playback.init("playback_tests2")
+        hydraulics_drv.init(500, True)
         httpd = BaseHTTPServer.HTTPServer(("", 9000), HydraulicsHandler)
-        httpProcess = Process(target = httpd.serve_forever)
+        httpProcess = Thread(target = httpd.serve_forever)
         httpProcess.start()
         
         setState("nomove")
+        
+        time.sleep(1)
     
         unittest.main()
         print "TIMEOUT"
         
     except KeyboardInterrupt:
         pass
+    except Exception:
+        logger.warning("Unexpected exception in test code")
         
-    httpProcess.terminate()
+    hydraulics_drv.shutdown()
     hydraulics_playback.shutdown()
     event_manager.shutdown()
     
