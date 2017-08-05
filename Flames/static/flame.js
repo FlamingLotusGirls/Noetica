@@ -262,7 +262,7 @@ $(function ($) {
     postHydraulicsAttractRename()
   })
   $('.hydraulics-attract-trash-button').on('click', function () {
-    postHydraulicsAttractTrash()
+    deleteHydraulicsAttractFile()
   })
 
   // Ajax functions
@@ -290,9 +290,11 @@ $(function ($) {
       newName: newName
     })
   }
-  var postHydraulicsAttractTrash = function() {
+  var deleteHydraulicsAttractFile = function() {
     var filename = selectedHydraulicsFilename()
-    console.log('deleting ' + filename)
+    $.ajax(hydraulicsUrl(`/playbacks/${filename}`), {
+      method: 'DELETE'
+    })
   }
   var postAttractFile = function(prefix) {
     var filename = selectedFilenames[prefix]
