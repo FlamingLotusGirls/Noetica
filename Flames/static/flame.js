@@ -159,6 +159,14 @@ $(function ($) {
   var updateSelectedFileDependentState = function() {
     updateHydraulicsAttractPlayMode()
   }
+  var updateColorInversion = function() {
+    if (inverted) {
+      $('html').addClass('inverted')
+    }
+    else {
+      $('html').removeClass('inverted')
+    }
+  }
   var updateAllUIState = function() {
     // Since we don't have automatic data binding and it's a pain to call update functions
     // in just the right places, this function just updates everything and is called
@@ -171,6 +179,7 @@ $(function ($) {
     updateHydraulicsAttractFilePicker()
     updatePooferSequenceFilePicker()
     updateSelectedFileDependentState()
+    updateColorInversion()
   }
 
   // Data state setting functions
@@ -213,13 +222,8 @@ $(function ($) {
 
   // Setup button event handlers
   $('.invert-button').on('click', function () {
-    if (inverted) {
-      inverted = false
-      $('html').removeClass('inverted')
-    } else {
-      inverted = true
-      $('html').addClass('inverted')
-    }
+    inverted = !inverted
+    updateAllUIState()
   })
   $('.poofer-individual-toggle-button').on('click', function () {
     if (selectedPoofer) {
