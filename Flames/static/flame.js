@@ -296,6 +296,9 @@ $(function ($) {
   }
   var deleteHydraulicsAttractFile = function() {
     var filename = selectedHydraulicsFilename()
+    if (!filename) {
+      return
+    }
     $.ajax(hydraulicsUrl(`/playbacks/${filename}`), {
       method: 'DELETE'
     })
