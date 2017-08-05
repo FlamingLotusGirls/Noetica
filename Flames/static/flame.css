@@ -23,8 +23,8 @@ body {
 }
 
 .poofer-enabled {
-  background-color: #ff9999;
-  background: #ff9999 url("images/poofer-enabled.gif") no-repeat center center;
+  background-color: #ff9966;
+  background: #ff9966 url("images/poofer-enabled.gif") no-repeat center center;
 }
 .page-container {
   height: 100%;
