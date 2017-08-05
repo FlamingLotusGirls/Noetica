@@ -7,7 +7,7 @@ $(function ($) {
     poofer: 'poofer-sequence'
   }
 
-  // Test values
+  // Test values - replace these with empty arrays in prod
   var hydraulicsAttractFiles = ['wicked poof', 'poofy smurf', 'superfly', 'black sunshine']
   var pooferSequenceFiles = ['poofy pooferson', 'poof daddy', 'sugar poof', 'poofy mcpoofface']
 
@@ -34,7 +34,7 @@ $(function ($) {
     return selectedFilenames[prefix]
   }
   var selectedHydraulicsFilename = function(filename) {
-    return getOrSetFilename(prefixes.hydraulics, filename);
+    return getOrSetFilename(prefixes.hydraulics, filename)
   }
   var selectedPooferFilename = function(filename) {
     return getOrSetFilename(prefixes.poofer, filename)
@@ -135,6 +135,10 @@ $(function ($) {
     updateHydraulicsAttractPlayMode()
   }
   var updateAllUIState = function() {
+    // Since we don't have automatic data binding and it's a pain to call update functions
+    // in just the right places, this function just updates everything and is called
+    // when anything changes. Where possible, functions called from here should be
+    // written to not force refreshes of state that didn't actually change.
     updateSelectedPooferDependentState()
     updateAllPoofersDisplayState()
     updateHydraulicsDisplayState()
