@@ -21,7 +21,7 @@ def init(timeout = 30, autoEnable=False, delta=20):
     global gAttractModeStartTime
     global gAttractMonitorThread
     
-    logger.info("Attract Manager Init")
+    logger.info("Attract Manager Init, timeout {}, autoEnable {}, delta {}".format(timeout, autoEnable, delta))
     
     attractModeTimeout(timeout)
     attractModeDelta(delta)
@@ -67,7 +67,7 @@ def startAttractMode(interruptable=True):
     logger.info("Starting attract mode")
     gOriginalDriverInput = hydraulics_drv.getInputSource()
     hydraulics_drv.setInputSource("recording")
-    gAttractModeTimeout = 0
+#    gAttractModeTimeout = 0
     gInterruptable = interruptable
     
 def interruptable(tf=None):
@@ -133,7 +133,7 @@ def eventHandler(msg):
         
 def attractModeMonitor():
     while isRunning:
-        if (time.time() > gAttractModeStartTime and not gInAttractMode):  
+        if (time.time() > gAttractModeStartTime and not gInAttractMode and gAutoAttractModeEnabled):  
             startAttractMode()
         time.sleep(1)
              
