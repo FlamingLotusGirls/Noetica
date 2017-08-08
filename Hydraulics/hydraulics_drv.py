@@ -55,7 +55,6 @@ manual_x = 0
 manual_y = 0
 manual_z = 0
 
-
 ioThread = None
 
 pollInterval = 1
@@ -171,11 +170,32 @@ class four_20mA_IO_Thread(Thread):
     def stop(self):
         self.running = False
         
-      
     def run(self):
+        ''' Run the main driver thread - read from the linear position sensors and PID controllers,
+            write out to the linear position sensors. Also broadcast position information 
+            to anyone who wants it.
+            
+            This function is complicated by the fact that, depending on the mode, we may
+            be mapping various different inputs (sensor, recorded data, manual data) to various
+            different outputs (sensor, no output) or broadcasting different things (sensor,
+            recorded data). These different inputs and outputs have different units, which 
+            means we need to translate between them if we have to do a mapping. 
+            
+            Here's a handy key:
+            - sensor data from the controller ranges from 400 to 2000 (that's in hundredths 
+            of a milliamp)
+            - voltage data from the sculpture ranges from 0 to 660 (that's in hundredths of
+            a volt)
+            - Recorded data ranges from 0.0 to 1.0. These are unitless coordinates.
+            - The ADC converter goes from 0-4095. The maximum value for controller data is
+            3723. The maximum value for sculpture data is 4095.
+            
+            In this code, 'control' needs to be in 
+            '''
+    
         global control
         while (self.running):
-            try:             
+            try:        
                 self.spi.open(0,1)           # Open SPI Channel 1 Chip Select is GPIO-7 (CE_1), analog read
                 # Read input data
                 for index in range(0,3):        # Get mA Reading for Channels 1 thru 3 
@@ -189,31 +209,31 @@ class four_20mA_IO_Thread(Thread):
                     VDC[index] = (adc[index] * VDCSpan / VDCSpanAdc ) 
 #                    print "Reading %d = %0.2f VDC" % (index+1,((float)(VDC[index]))/Scaler)
                 if inputSource == "recording":
-                    control[0],control[1],control[2] = hydraulics_playback.getPlaybackData()  # test state: send from playback data
-                elif inputSource == "manual":
-                    control[0] = manual_x
-                    control[1] = manual_y
-                    control[2] = manual_z
+                    playback_x, playback_y, playback_z = hydraulics_playback.getPlaybackData()  # test state: send from playback data
+                    control[0],control[1],control[2] = normalized_2_adcMA(playback_x, playback_y, playback_z)
+                elif inputSource == "manual": # input range is 400-2000
+                    control[0], control[1], control[2] = mA_2_adcMA(manual_x, manual_y, manual_z)
                 else: # normal state, read from controller
-                    control[0] = mA[0]
-                    control[1] = mA[1]
-                    control[2] = mA[2]
+                    control[0] = adc[0]
+                    control[1] = adc[1]
+                    control[2] = adc[2]
                 if feedbackSource == "recording":
-                    if inputSource == "recording": # NB - dont call getPlaybackData twice
-                        feedback_x = control[0]
-                        feedback_y = control[1]
-                        feedback_z = control[2] 
+                    if inputSource == "recording": # NB - dont call getPlaybackData twice 
+                        feedback_x = playback_x
+                        feedback_y = playback_y
+                        feedback_z = playback_z
                     else:
-                        feedback_x, feedback_y, feedback_z = hydraulics_playback.getPlaybackData()
-                else:
-                    feedback_x = VDC[4]
-                    feedback_y = VDC[5]
-                    feedback_z = VDC[6]
+                        feedback_x, feedback_y, feedback_z = hydraulics_playback.getPlaybackData() 
+                else: # Feedback source from PID controller
+                    feedback_x, feedback_y, feedback_z = VDC_2_normalized(VDC[4], VDC[5], VDC[6])
                     
                 # send sculpture position to whoever is listening
+                nX, nY, nZ = adcMA_2_normalized(control[0], control[1], control[2])
                 event_manager.postEvent({"msgType":"pos", 
-                                         "x":control[0], "y":control[1], "z":control[2], 
+                                         "x":nX, "y":nY, "z":nZ, 
                                          "xx":feedback_x, "yy":feedback_y, "zz":feedback_z})
+                event_manager.postEvent({"msgType":"cpos", "x":mA[0], "y":mA[1], "z":mA[2],
+                                         "xx":VDC[3], "yy":VDC[4], "zz":VDC[5]})
                                          
                 # write to output
                 if outputEnabled:
@@ -227,7 +247,6 @@ class four_20mA_IO_Thread(Thread):
                 time.sleep(pollInterval)
             except Exception as e:
                 logger.exception("Error running spi driver")
-                #traceback.print_exc(file=sys.stdout)
  
         self.spi.close()
         
@@ -264,6 +283,31 @@ class four_20mA_IO_Thread(Thread):
         self.spi.writebytes([buf_0,buf_1]) # write command and data bytes to DAC
         GPIO.output(gpio,1)         # Set Ship Select 2AO HIGH
         
+# Some utility conversion functions
+def VDC_2_normalized(vX, vY, vZ):
+    return float(vX)/660.0, float(vY)/660.0, float(vZ)/660.0
+    
+def normalized_2_VDC(nX, nY, nZ):
+    return int(nX*660), int(nY*660), int(nZ*660)
+    
+def mA_2_normalized(mX, mY, mZ):
+    return float(mX-400)/1600, float(mY-400)/1600, float(mZ-400)/1600
+    
+def normalized_2_mA(nX, nY, nZ):
+    return int(nX*1600+400), int(nY*1600+400), int(nZ*1600+400)
+    
+def normalized_2_adcV(nX, nY, nZ):
+    return int(nX*4095), int(nY*4095), int(nZ*4095)
+
+def normalized_2_adcMA(nX, nY, nZ):  # yes, I'm sure numpy does this calculation more elegantly.
+    return int(nX*3723), int(nY*3723), int(nZ*3723)
+    
+def adcMA_2_normalized(mX, mY, mZ):
+    return float(mX)/3723.0, float(mY)/3723.0, float(mZ)/3723.0
+    
+def mA_2_adcMA(mX, mY, mZ):
+    return mX*3723/2000, mY*3723/2000, mZ*3723/2000
+      
 
 
 def testHandler(msg):

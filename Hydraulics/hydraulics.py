@@ -3,6 +3,7 @@
 import BaseHTTPServer
 import ConfigParser
 import logging
+import os
 import sys
 
 
@@ -45,6 +46,9 @@ if __name__ == '__main__':
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
+        # set cwd 
+        os.chdir(HOME_DIR)
+        
         # initialize event manager
         event_manager.init()
         
