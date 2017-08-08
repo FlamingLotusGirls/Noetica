@@ -60,7 +60,7 @@ ioThread = None
 pollInterval = 1
 logger = logging.getLogger('hydraulics_drv')
 
-def init(interval = 1000, enableOutput = False):
+def init(interval = 1000, enableOutput = True):
     logger.info("Hydraulics driver init, interval {}, output {}".format(interval, enableOutput))
     global ioThread
     global pollInterval
@@ -129,6 +129,9 @@ def isOutputEnabled():
     
 def getControlInput():
     return control[0], control[1], control[2]
+
+def getControllerPosition():
+    return mA[0], mA[1], mA[2] 
     
 def getSculpturePosition():
     return VDC[4], VDC[5], VDC[6] 
@@ -217,6 +220,7 @@ class four_20mA_IO_Thread(Thread):
                     control[0] = adc[0]
                     control[1] = adc[1]
                     control[2] = adc[2]
+                #print("INPUT: {}, {}, {}".format(adc[0],adc[1],adc[2]))
                 if feedbackSource == "recording":
                     if inputSource == "recording": # NB - dont call getPlaybackData twice 
                         feedback_x = playback_x
@@ -237,7 +241,7 @@ class four_20mA_IO_Thread(Thread):
                                          
                 # write to output
                 if outputEnabled:
-#                    logger.debug("writing output, {}, {}, {}".format(x,y,z))
+#                    logger.debug("writing output, {}, {}, {}".format(control[0], control[1], control[2]))
                     self.writeAnalogOutput(4,  0, control[0])
                     self.writeAnalogOutput(4,  1, control[1])
                     self.writeAnalogOutput(22, 0, control[2])
