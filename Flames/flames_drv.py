@@ -58,6 +58,7 @@ from poofermapping import mappings as pooferMapping
 import pattern_manager
 from collections import defaultdict
 import serial
+from operator import itemgetter
 
 logger = logging.getLogger("flames_drv")
 POOFER_MAPPINGS_FILE = "./poofer_mappings.json"
@@ -76,9 +77,6 @@ validFiringSequenceEvents            = re.compile('(^(RR|NN|NW|NE|NT|EN|EE|ES|ET
 
 ### VARIABLES ###
 #expected list of poofer controller boards
-
-
-
 
 pooferFiringThread = None
 
@@ -104,10 +102,11 @@ class PooferFiringThread(Thread):
         logger.info("Init Poofer Firing Thread")
         self.cmdQueue = cmdQueue
         self.running = False
-        self.isStopped = False
+        self.isFiringDisabled = False
         self.pooferEvents = list() # time-ordered list of poofer events
         self.disabled_poofers = set()
         self.ser = initSerial()
+        self.disableAllPoofersCommand = ""
 
     def shutdown(self):
         self.running = False
@@ -119,15 +118,15 @@ class PooferFiringThread(Thread):
         for filename in os.listdir("/dev"):
             if filename.startswith("tty.usbserial"):  # this is the ftdi usb cable on the Mac
                 port = "/dev/" + filename
-                print "Found usb serial at ", port
+                logger.excpetion("Found usb serial at " + port)
                 break;
             elif filename.startswith("ttyUSB0"):      # this is the ftdi usb cable on the Pi (Linux Debian)
                 port = "/dev/" + filename
-                print "Found usb serial at ", port
+                ogger.excpetion("Found usb serial at " + port)
                 break;
 
         if not port:
-            print("No usb serial connected")
+            logger.excpetion("No usb serial connected")
             return None
 
         ser.port = port
@@ -138,6 +137,15 @@ class PooferFiringThread(Thread):
         ser.rtscts   = 0
         ser.open() # if serial open fails... XXX
         return ser
+
+    def generateDisableAllString():
+        self.disableAllPoofersCommand = ""
+        controllerDict = defaultdict(list)
+        for attribute, value in pooferMapping.iteritems():
+            controllerDict[value[:2]].append(value[2])
+
+        for i in controllerDict.keys():
+            self.disableAllPoofersCommand += "!" + i + "~".join(map(lambda x: x+"1", controllerDict[i])) + "."
 
     def run(self):
         self.running = True
@@ -181,7 +189,7 @@ class PooferFiringThread(Thread):
                     # TODO: does this need to persist?
                     self.disablePoofer(msgObj)
 
-                elif not isStopped:
+                elif not isFiringDisabled:
                     if type == "flameEffectStop":
                         self.stopFlameEffect(msgObj)
 
@@ -202,99 +210,24 @@ class PooferFiringThread(Thread):
 
 
 
-    ## sanity and limit checks on an event from firingSequence ##
-    # CSW - suggest just returning True or False, and logging the reason, rather than
-    # returning the reason as a string. The upper level code really doesn't care why
-    # the call failed.
-    def checkEvent(self, event):
-        ##########
-        #this function will return the event if it's not malformed
-        # and also check to see if the timings are in the allowed ranges
-        # if these checks fail, the function will return information as to why
-        # if these checks pass, it returns the event
-
-        #note: poofer names can be: NN,NW,NE,NT,EN,EE,ES,ET,SE,SS,SW,ST,WS,WW,WN,WT,TN,TE,TS,TW,TT,BN,BE,BS,BW
-        # and times can be a sequence of any four numerical characters (0000 to 9999)
-        ##########
-
-        #check the form of the event to make sure that it is not malformed
-        filteredEvent=re.match(validFiringSequenceEvents, event) #returns None if the firing sequence event is malformed
-        #debug
-        print("result=" ,result)
-
-        #now carry out the limit checks
-        if filteredEvent is not None: #the event was not malformed
-
-            #split event string into alpha and numerical characters
-            alphas=re.findall('\d*\D+', event)
-            digits=re.findall('(\d+|D+)', event)
-
-            #first, check to see if the poofer is in the disabledPoofers list
-            #and if it is then replace it with a rest
-            for disabledPoofer in disabledPoofers:
-                if disabledPoofer == alphas:
-                    event="RR"+digits
-                    return(1)
-                        #else: # if it is in the list
-                                #replace event with a rest
-
-            #then, if it's a rest event, make sure it's not larger than the max rest time
-            if alphas == "RR":
-                if int(digits) > int(maxNonFiringRestTime):
-                    result = "rest time > maxNonFiringRestTime"
-            else:
-                #next, make sure that the poofer event time is not too short, to prevent poofer valve jamming
-                if int(digits) < int(minPooferCycleTime):
-                    result="event time < minPooferCycleTime, event= " + event
-
-                else: #it has passed the checks, yay!
-                    result = event
-
-        else: #the event was malformed
-            #raise Exception as e:
-            print("Error: firingSequence event is malformed, event=", event)
-            print("Exception code: ", e)
-            result = "malformed"
-
-        return(result)
-
 
     def checkSequence(self, firingSequence):
-        #debug
-        print ("starting checkSequence")
-        return True # XXX need to short circuit this for now
         try:
-            #exception if firingSequence does not have more steps in it than the upper limit
-            if len(firingSequence) > maxFiringSequenceSteps:
+            events = firingSequence["events"]
+
+            if len(fevents) > maxFiringSequenceSteps:
                 raise Exception ("Error: maxFiringSequenceSteps < len(firingSequence) = ", len(firingSequence))
-                traceback.print_exc(file=sys.stdout)
 
-            #populate eventList
-            for step in firingSequence:
-                #debug
-                print("current step = ", step)
+            totalDuration = 0
+            for e in events:
+                totalDuration += e["duration"]
+            if totalDuration > 60000:
+                raise Exception ("Error: duration", len(firingSequence))
 
-                if "&" in step: #this step has parallel firing events
-                    #debug
-                    print("found to be a parallel event step")
-                    eventList=step.split("&")
-
-                else: #this step has only one firing event
-                    #debug
-                    print("found to be a single event step")
-                    eventList=step
-
-                #check eventList for malformed commands
-                for event in eventList:
-                    if checkEvent(event) != event: # != "malformed" ?
-                        #raise Exception as e:
-                        print("Error: firingSequence is malformed.")
-                        return False
             return True
 
         except Exception as e:
-            print("Error: firingSequence is malformed or out of bounds", e)
-            traceback.print_exc(file=sys.stdout)
+            logger.exception("Error: firingSequence is malformed or out of bounds" + e)
             return False
 
     ## send bangCommandList to the poofer controller boards
@@ -314,8 +247,7 @@ class PooferFiringThread(Thread):
         except Exception as e:
             ser.close()
             ser = None
-            print("Error sending bangCommandSequence to poofer controller boards", e)
-            traceback.print_exc(file=sys.stdout)
+            logger.exception("Error sending bangCommandSequence to poofer controller boards" + e)
 
     def disablePoofer(msgObj):
         self.disabled_poofers.add(msgObj["name"])
@@ -327,14 +259,27 @@ class PooferFiringThread(Thread):
             event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
 
     def resumeAll():
-        self.isStopped = False
+        self.isFiringDisabledpped = False
         event_manager.postEvent({"msgType":"global_resume", "id":"all?"})
 
     def stopAll():
-        self.isStopped = True
-        # TODO: send bang command to stop all poofers
-        self.pooferEvents = list() # reset all pooferEvents
-        event_manager.postEvent({"msgType":"global_pause", "id":"all?"})
+        try:
+            if not ser:
+                ser.initSerial()
+            if disableAllPoofersCommand == "":
+                generateDisableAllString()
+            ser.write(disableAllPoofersCommand.encode())
+
+
+            # TODO: kill all
+
+            self.isFiringDisabled = True
+            self.pooferEvents = list() # reset all pooferEvents
+            event_manager.postEvent({"msgType":"global_pause", "id":"all?"})
+
+        except Exception as e:
+            logger.exception("Error stopping all poofers: ", e)
+
 
     def startFlameEffect(msgObj):
         if self.checkSequence(msgObj):
@@ -342,8 +287,6 @@ class PooferFiringThread(Thread):
             event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
 
     def stopFlameEffect(msgObj):
-        #  TODO: Need to figure out how to stop this,
-        # since now this is also removing commands to stop poofers
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
         filter(lambda p: p.sequence != msgObj["name"], pooferEvents)
 
@@ -361,7 +304,7 @@ class PooferFiringThread(Thread):
         events = sequence["events"]
         firstFiringTime = time.time()
 
-        if not self.isStopped:
+        if not self.isFiringDisabled:
             for event in events:
                 ids = events["ids"]
                 startTime = firstFiringTime + event["startTime"]
@@ -383,6 +326,7 @@ class PooferFiringThread(Thread):
                 # TODO: need to figure out best way to sort this thing
                 self.pooferEvents.append(pooferEvent)
                 self.pooferEvents.append(endPooferEvent)
+                pooferEvents.sort(key=itemgetter("time"))
 
     def makeBangCommandList(addresses):
         # creates a dictionary with the key being a controller ID (two digits),
@@ -394,7 +338,8 @@ class PooferFiringThread(Thread):
 
         try:
             controllerDict = defaultdict(list)
-            for controllerId in address: controllerDict[controllerId[:2]].append(controllerId[2])
+            for controllerId in address:
+                controllerDict[controllerId[:2]].append(controllerId[2])
 
             for i in controllerDict.keys():
                 onBangCommands.append(
@@ -403,8 +348,7 @@ class PooferFiringThread(Thread):
                     "!" + i + "~".join(map(lambda x: x+"0", controllerDict[i])) + ".")
 
         except Exception as e:
-            print("Error generating bang code: ", e)
-            traceback.print_exc(file=sys.stdout)
+            logger.exception("Error generating bang code: ", e)
             return(1)
 
         return {"on":onBangCommands, "off":offBangCommands}
