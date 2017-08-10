@@ -2,6 +2,7 @@
 
 
 import logging
+import os
 import sys
 import time
 import Queue
@@ -51,6 +52,9 @@ if __name__ == '__main__':
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
 
     try:
+        # set cwd 
+        os.chdir(HOME_DIR)
+                
         # initialize pattern manager
         pattern_manager.init(HOME_DIR + SEQUENCE_FILE)
         
