@@ -21,6 +21,7 @@ $(function ($) {
     'hydraulics-attract': true
   }
   var hydraulicsAttractModeActive = false
+  var hydraulicsRecordActive = false
   var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
 
   // jQuery helpers
@@ -70,7 +71,7 @@ $(function ($) {
   }
   var updatePooferToggleButtonState = function() {
     var enabled = !selectedPoofer || selectedPoofer.enabled
-    $('.poofer-individual-toggle-button').text(enabled ? 'Disable' : 'Enable')
+    $('.poofer-individual-toggle-button').prop('checked', enabled)
   }
   var updateSelectedPooferName = function() {
     var name = (selectedPoofer && selectedPoofer.name) || 'None'
@@ -145,16 +146,34 @@ $(function ($) {
     if (!selectedHydraulicsFilename()) {
       hydraulicsAttractModeActive = false
       $button.attr('disabled', true)
-      $button.text('Start')
     } else if (!toggleStates['hydraulics-attract']) {
       $button.attr('disabled', true)
     } else {
       $button.attr('disabled', false)
     }
-    $button.text(hydraulicsAttractModeActive ? 'Stop' : 'Start')
+    if (hydraulicsAttractModeActive) {
+      $button.removeClass('btn-play')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-play')
+    }
+    $button.attr('title', hydraulicsAttractModeActive ? 'Stop' : 'Start')
     if (hydraulicsAttractModeActive !== oldMode) {
       postHydraulicsAttractMode()
     }
+  }
+  var updateHydraulicsRecordButtonState = function() {
+    var $button = $('.hydraulics-record-toggle-button')
+    if (hydraulicsRecordActive) {
+      $button.removeClass('btn-record')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-record')
+    }
+    $button.attr('title', hydraulicsAttractModeActive ? 'Stop Recording' : 'Record')
+
   }
   var updateSelectedFileDependentState = function() {
     updateHydraulicsAttractPlayMode()
@@ -179,6 +198,7 @@ $(function ($) {
     updateHydraulicsAttractFilePicker()
     updatePooferSequenceFilePicker()
     updateSelectedFileDependentState()
+    updateHydraulicsRecordButtonState()
     updateColorInversion()
   }
 
@@ -254,6 +274,11 @@ $(function ($) {
     postHydraulicsAttractMode()
     updateAllUIState()
   })
+  $('.hydraulics-record-toggle-button').on('click', function() {
+    hydraulicsRecordActive = !hydraulicsRecordActive
+    postHydraulicsRecordMode()
+    updateAllUIState()
+  })
   Object.keys(toggleStates).forEach(function(p) {
     var prefix = p
     $(`.${prefix}-toggle-button`).on('click', function() {
@@ -283,6 +308,9 @@ $(function ($) {
         state: 0
       })
     }
+  }
+  postHydraulicsRecordMode = function() {
+    console.log('going to post hydraulics record mode')
   }
   var postHydraulicsAttractRename = function() {
     var oldName = selectedHydraulicsFilename()

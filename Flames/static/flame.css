@@ -84,9 +84,6 @@ body {
   display: flex;
   align-items: center; /* vertically centers the children */
 }
-.poofer-individual-toggle-button {
-  width: 5em;
-}
 .poofer-selected-display-container {
   display: flex;
   flex-direction: column;
@@ -155,6 +152,21 @@ body {
 .hydraulics-attract-file-picker-container {
   flex: 2;
 }
+
+.btn {
+  width: 37px;
+  height: 37px;
+}
+.btn-play {
+  background: url("images/play.png") no-repeat center center;
+}
+.btn-stop {
+  background: url("images/stop.png") no-repeat center center;
+}
+.btn-record {
+  background: url("images/record.png") no-repeat center center;
+}
+
 
 /* Toggle switches */
 
