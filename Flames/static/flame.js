@@ -21,6 +21,7 @@ $(function ($) {
     'hydraulics-attract': true
   }
   var hydraulicsAttractModeActive = false
+  var pooferSequenceModeActive = false
   var hydraulicsRecordActive = false
   var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
 
@@ -163,6 +164,27 @@ $(function ($) {
       postHydraulicsAttractMode()
     }
   }
+  var updatePooferSequencePlayMode = function() {
+    var oldMode = pooferSequenceModeActive
+    var $button = $('.poofer-sequence-play-stop-button')
+    if (!selectedPooferFilename()) {
+      pooferSequenceModeActive = false
+      $button.attr('disabled', true)
+    } else {
+      $button.attr('disabled', false)
+    }
+    if (pooferSequenceModeActive) {
+      $button.removeClass('btn-play')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-play')
+    }
+    $button.attr('title', pooferSequenceModeActive ? 'Stop' : 'Start')
+    if (pooferSequenceModeActive !== oldMode) {
+      postPooferSequenceMode()
+    }
+  }
   var updateHydraulicsRecordButtonState = function() {
     var $button = $('.hydraulics-record-toggle-button')
     if (hydraulicsRecordActive) {
@@ -177,6 +199,7 @@ $(function ($) {
   }
   var updateSelectedFileDependentState = function() {
     updateHydraulicsAttractPlayMode()
+    updatePooferSequencePlayMode()
   }
   var updateColorInversion = function() {
     if (inverted) {
@@ -274,6 +297,11 @@ $(function ($) {
     postHydraulicsAttractMode()
     updateAllUIState()
   })
+  $('.poofer-sequence-play-stop-button').on('click', function() {
+    pooferSequenceModeActive = !pooferSequenceModeActive
+    postPooferSequenceMode()
+    updateAllUIState()
+  })
   $('.hydraulics-record-toggle-button').on('click', function() {
     hydraulicsRecordActive = !hydraulicsRecordActive
     postHydraulicsRecordMode()
@@ -298,19 +326,32 @@ $(function ($) {
   var postHydraulicsAttractMode = function() {
     if (hydraulicsAttractModeActive && selectedHydraulicsFilename()) {
       $.post(hydraulicsUrl(), {
-        state: 1,
+        state: 'attract',
         currentPlayback: selectedHydraulicsFilename()
       })
     } else {
       // just in case, make state consistent
       hydraulicsAttractModeActive = false
       $.post(hydraulicsUrl(), {
-        state: 0
+        state: 'passthrough'
       })
     }
   }
+  var postPooferSequenceMode = function() {
+    var name = selectedPooferFilename()
+    if (name) {
+      $.post(flameUrl(`patterns/${name}`), {
+        active: pooferSequenceModeActive
+      })
+    } else {
+      // just in case, make state consistent
+      pooferSequenceModeActive = false
+    }
+  }
   postHydraulicsRecordMode = function() {
-    console.log('going to post hydraulics record mode')
+    $.post(hydraulicsUrl('playbacks'), {
+      record: '' + hydraulicsRecordActive
+    })
   }
   var postHydraulicsAttractRename = function() {
     var oldName = selectedHydraulicsFilename()
@@ -346,9 +387,22 @@ $(function ($) {
     }
   }
   var postToggleState = function(prefix) {
-    console.log('posting toggle state')
+    if (prefix === 'poofer-main') {
+      $.post(flameUrl(), {
+        playState: toggleStates[prefix] ? 'play' : 'pause'
+      })
+    } else if (prefix === 'hydraulics-main') {
+      $.post(hydraulicsUrl(), {
+        state: toggleStates[prefix] ? 'passthrough' : 'nomove'
+      })
+    } else if (prefix === 'hydraulics-attract') {
+      if (toggleStates['hydraulics-main']) {
+        $.post(hydraulicsUrl(), {
+          state: toggleStates[prefix] ? 'attract' : 'passthrough'
+        })
+      }
+    }
   }
-
 
   // Ajax callbacks
   var flameDataCallback = function(data) {
