@@ -416,8 +416,6 @@ $(function ($) {
 
   // Setup polling
   var pollingFunction = function() {
-    var polling = $('.polling-checkbox').is(':checked')
-    if (!polling) return
     $.get(flameUrl()).done(flameDataCallback)
     $.get(hydraulicsUrl()).done(hydraulicsDataCallback)
   }

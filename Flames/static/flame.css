@@ -14,7 +14,7 @@ body {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
 /* Exceptions to inverted style */
-.inverted .poofer-enabled, .inverted .switch .slider {
+.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record {
   filter: invert(100%);
 }
 
