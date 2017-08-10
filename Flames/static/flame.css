@@ -205,11 +205,11 @@ body {
 }
 
 input:checked + .slider {
-  background-color: #00ff00;
+  background-color: #ffaaff;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #00ff00;
+  box-shadow: 0 0 1px #ffaaff;
 }
 
 input:checked + .slider:before {
