@@ -42,9 +42,10 @@ poofer sequence - let's define it as:
 pooferid, on time, delaytime
 [{"id":"NW", duration:1000, "startTime":1200} That's an event. So a sequence is
 {"name":<name>, [{"id":"NW" etc... Let's use the tool to generate these.
-That's an event object. Not as easily human understandable, but it works
+That's an eve self.pooferMapping as easily human understandable, but it works
 '''
 
+import os
 import sys                    # system functions
 import traceback            # exceptions and tracebacks
 import time                    # system time
@@ -54,23 +55,23 @@ import Queue
 import json
 import logging
 import event_manager
-from poofermapping import mappings as pooferMapping
 import pattern_manager
 from collections import defaultdict
 import serial
 from operator import itemgetter
 
+logging.basicConfig()
 logger = logging.getLogger("flames_drv")
 POOFER_MAPPINGS_FILE = "./poofer_mappings.json"
 
 ### PARAMETERS - DO NOT CHANGE ###
 #these parameters may need to be tweaked during early testing
-minPooferCycleTime                    = 50             #milliseconds, this is the poofer off-to-on-to-off cycle time, dictated by the switching speed of the DMI-SH-112L relay on the poofer controller board
-maxFiringSequenceSteps                 = 50            #some upper limit to firing sequence, for sanity checks
-minFiringRestTime                    = 100            #milliseconds, this is the minimum time we want between two sequential poofer firing steps
+minPooferCycleTime                  = 50             #milliseconds, this is the poofer off-to-on-to-off cycle time, dictated by the switching speed of the DMI-SH-112L relay on the poofer controller board
+maxFiringSequenceSteps              = 50            #some upper limit to firing sequence, for sanity checks
+minFiringRestTime                   = 100            #milliseconds, this is the minimum time we want between two sequential poofer firing steps
 maxNonfiringRestTime                = 9999             #milliseconds, dictates the maximum time for a firing sequence rest event
 maxCommandsInAFiringSequence        = 50             #integer, needs to be tested
-
+BAUDRATE                            = 19200
 #regex filter, precompiled for efficiency
 validFiringSequenceEvents            = re.compile('(^(RR|NN|NW|NE|NT|EN|EE|ES|ET|SE|SS|SW|ST|WS|WW|WN|WT|TN|TE|TS|TW|TT|BN|BE|BS|BW)[0-9][0-9][0-9][0-9]$)')
 
@@ -94,43 +95,47 @@ def shutdown():
         pooferFiringThread.join()
         pooferFiringThread = None
 
-class PooferFiringThread(Thread):
+class PooferFiringThread(Thread): # comment out for unit testing
+# class PooferFiringThread():
     TIMEOUT = 1 # 1 second timeout, even if no events
 
-    def __init__(self, cmdQueue):
-        Thread.__init__(self)
+    def __init__(self, cmdQueue, pooferMappingPath='poofer_mappings.json'):
+        Thread.__init__(self) # comment out for unit testing
         logger.info("Init Poofer Firing Thread")
         self.cmdQueue = cmdQueue
         self.running = False
         self.isFiringDisabled = False
         self.pooferEvents = list() # time-ordered list of poofer events
         self.disabled_poofers = set()
-        self.ser = initSerial()
-        self.disableAllPoofersCommand = ""
+        self.ser = self.initSerial()
+        with open(pooferMappingPath) as data_file:
+            self.pooferMapping = json.load(data_file)
+        self.disableAllPoofersCommand = self.generateDisableAllString()
+
 
     def shutdown(self):
         self.running = False
 
-    def initSerial():
+    def initSerial(self):
         ser = serial.Serial()
         ser.baudrate = BAUDRATE
         port = False
         for filename in os.listdir("/dev"):
             if filename.startswith("tty.usbserial"):  # this is the ftdi usb cable on the Mac
                 port = "/dev/" + filename
-                logger.excpetion("Found usb serial at " + port)
+                logger.exception("Found usb serial at " + port)
                 break;
             elif filename.startswith("ttyUSB0"):      # this is the ftdi usb cable on the Pi (Linux Debian)
                 port = "/dev/" + filename
-                ogger.excpetion("Found usb serial at " + port)
+                logger.exception("Found usb serial at " + port)
                 break;
 
         if not port:
-            logger.excpetion("No usb serial connected")
+            logger.exception("No usb serial connected")
             return None
 
         ser.port = port
-        ser.timeout =0
+        ser.timeout = 0
         ser.stopbits = serial.STOPBITS_ONE
         ser.bytesize = 8
         ser.parity   = serial.PARITY_NONE
@@ -138,14 +143,15 @@ class PooferFiringThread(Thread):
         ser.open() # if serial open fails... XXX
         return ser
 
-    def generateDisableAllString():
+    def generateDisableAllString(self):
         self.disableAllPoofersCommand = ""
         controllerDict = defaultdict(list)
-        for attribute, value in pooferMapping.iteritems():
+        for attribute, value in self.pooferMapping.iteritems():
+            # print attribute, value
             controllerDict[value[:2]].append(value[2])
 
         for i in controllerDict.keys():
-            self.disableAllPoofersCommand += "!" + i + "~".join(map(lambda x: x+"1", controllerDict[i])) + "."
+            self.disableAllPoofersCommand += "!" + i + "~".join(map(lambda x: x+"0", controllerDict[i])) + "."
 
     def run(self):
         self.running = True
@@ -208,9 +214,6 @@ class PooferFiringThread(Thread):
             except Exception:
                 logger.exception("Unexpected exception processing command queue!")
 
-
-
-
     def checkSequence(self, firingSequence):
         try:
             events = firingSequence["events"]
@@ -243,6 +246,7 @@ class PooferFiringThread(Thread):
 
             for command in bangCommandList:
                 ser.write(command.encode())
+                print command
 
         except Exception as e:
             ser.close()
@@ -267,7 +271,7 @@ class PooferFiringThread(Thread):
             if not ser:
                 ser.initSerial()
             if disableAllPoofersCommand == "":
-                generateDisableAllString()
+                self.generateDisableAllString()
             ser.write(disableAllPoofersCommand.encode())
 
 
@@ -283,14 +287,14 @@ class PooferFiringThread(Thread):
 
     def startFlameEffect(msgObj):
         if self.checkSequence(msgObj):
-            setUpEvent(msgObj)
+            self.setUpEvent(msgObj)
             event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
 
     def stopFlameEffect(msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
         filter(lambda p: p.sequence != msgObj["name"], pooferEvents)
 
-    def setUpEvent(msgObj):
+    def setUpEvent(self, msgObj):
         # Takes a sequence object, and add to self.pooferEvents the bang commands
         # to turn on and to turn off the specified poofers.
         # The obect added to self.pooferEvents is of format:
@@ -298,7 +302,7 @@ class PooferFiringThread(Thread):
         # "bangCommandList":["!0011~21.", "!0021~21."] }
 
         sequenceName = msgObj["name"]
-        sequence = self.pattern_manager.getPattern(sequenceName)
+        sequence = pattern_manager.getPattern(sequenceName)
 
         duration = sequence["duration"]
         events = sequence["events"]
@@ -310,8 +314,8 @@ class PooferFiringThread(Thread):
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                addresses = [pooferMapping[a] for a in ids].sort()
-                bangCommandList = makeBangCommandList(addresses)
+                addresses = [self.pooferMapping[a] for a in ids].sort()
+                bangCommandList = self.makeBangCommandList(addresses)
 
                 pooferEvent = {}
                 pooferEvent["sequence"] = sequenceName
@@ -328,18 +332,24 @@ class PooferFiringThread(Thread):
                 self.pooferEvents.append(endPooferEvent)
                 pooferEvents.sort(key=itemgetter("time"))
 
-    def makeBangCommandList(addresses):
+    def makeBangCommandList(self, addresses):
         # creates a dictionary with the key being a controller ID (two digits),
         # and values being all the channels for a given controller.
         # returns an object with bang commands to turn poofers both on and off
+
+        print "IN BANG COMMAND LIST MAKER"
+        print addresses
+
 
         onBangCommands = []
         offBangCommands = []
 
         try:
             controllerDict = defaultdict(list)
-            for controllerId in address:
+            for controllerId in addresses:
                 controllerDict[controllerId[:2]].append(controllerId[2])
+
+            print "controllerDict = ", controllerDict
 
             for i in controllerDict.keys():
                 onBangCommands.append(
@@ -348,6 +358,7 @@ class PooferFiringThread(Thread):
                     "!" + i + "~".join(map(lambda x: x+"0", controllerDict[i])) + ".")
 
         except Exception as e:
+            print e
             logger.exception("Error generating bang code: ", e)
             return(1)
 

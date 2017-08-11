@@ -1,4 +1,4 @@
-'''Flame controller. Responsible for high-level management of flame effects. All objects 
+'''Flame controller. Responsible for high-level management of flame effects. All objects
 or modules wanting to know the status of poofers or sequences should call into this module.
 Similarly, all objects or modules wanting to change the status of poofers or sequences -
 including running a sequence - should call into this module.
@@ -21,6 +21,7 @@ import mock_event_producer as mockDriver
 import event_manager
 import pattern_manager
 
+logging.basicConfig()
 logger = logging.getLogger("flames")
 
 cmdQueue   = None       # requests from upper level
@@ -41,21 +42,21 @@ def init(flameQueue, useDriver=True):
 
     event_manager.addListener(eventHandler)
 
-    
+
 def shutdown():
     logger.info("Flame Controller Shutdown")
-    
-    
+
+
 def doFlameEffect(flameEffectName):
     logger.debug("Doing flame effect {}".format(flameEffectName))
     if not flameEffectName in disabledFlameEffects:
         flameEffectMsg = {"cmdType":"flameEffectStart", "name":flameEffectName}
         cmdQueue.put(json.dumps(flameEffectMsg))
-    
+
 def stopFlameEffect(flameEffectName):
     flameEffectMsg = {"cmdType":"flameEffectStop", "name":flameEffectName}
     cmdQueue.put(json.dumps(flameEffectMsg))
-    
+
 def disableFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:
         disabledFlameEffects.append(flameEffectName)
@@ -71,7 +72,7 @@ def enableFlameEffect(flameEffectName):
 
 def isFlameEffectActive(flameEffectName):
     return flameEffectName in activeFlameEffects
-    
+
 def isFlameEffectEnabled(flameEffectName):
     return not flameEffectName in disabledFlameEffects
 
@@ -92,13 +93,13 @@ def enablePoofer(pooferId):
             cmdQueue.put(json.dumps(flameEffectMsg))
         else:
             mockDriver.enablePoofer(pooferId)
-        
+
 def isPooferEnabled(pooferId):
     return not (pooferId in disabledPoofers)
-    
+
 def isPooferActive(pooferId):
     return pooferId in activePoofers
-    
+
 def globalPause():
     global globalEnable
     flameEffectMsg = {"cmdType":"stop"}
@@ -110,16 +111,16 @@ def globalRelease():
     globalEnable = True
     flameEffectMsg = {"cmdType":"resume"}
     cmdQueue.put(json.dumps(flameEffectMsg))
-    
+
 def isStopped():
     return not globalEnable
-   
+
 def getDisabledPoofers():
     return disabledPoofers
-    
+
 def getDisabledFlameEffects():
     return disabledFlameEffects
-    
+
 def eventHandler(msg):
     msgType = msg["msgType"]
     id = msg["id"]
@@ -138,23 +139,23 @@ if __name__ == "__main__":
     import mock_event_producer
     import time
     import Queue
-    
+
     logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
 
     try:
-    
+
         event_manager.init()
         mock_event_producer.init()
         init(Queue.Queue())
-        
+
         while(True):
             time.sleep(10)
-   
+
     except Exception as e:
         print "Exception occurs!", e
     except KeyboardInterrupt:
         print "Keyboard Interrupt!"
-        
+
     event_manager.shutdown()
     mock_event_producer.shutdown()
     shutdown()
