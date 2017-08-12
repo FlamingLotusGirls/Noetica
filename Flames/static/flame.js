@@ -416,8 +416,8 @@ $(function ($) {
 
   // Setup polling
   var pollingFunction = function() {
-    $.get(flameUrl()).done(flameDataCallback)
-    $.get(hydraulicsUrl()).done(hydraulicsDataCallback)
+    $.getJSON(flameUrl()).done(flameDataCallback)
+    $.getJSON(hydraulicsUrl()).done(hydraulicsDataCallback)
   }
   setInterval(pollingFunction, pollingInterval)
 
