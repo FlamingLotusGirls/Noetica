@@ -231,15 +231,15 @@ $(function ($) {
     updateSelectedPooferDependentState()
   }
   var updatePooferData = function (data) {
-    data.forEach(function(poofer) {
+    data.poofers.forEach(function(poofer) {
       var pooferState = allPoofersState[poofer.name]
       pooferState.enabled = poofer.enabled
     })
+    pooferSequenceFiles = data.patterns
   }
   var updateHydraulicsData = function (data) {
     hydraulicsState = data
     hydraulicsAttractFiles = data.playbacks
-    hydraulicsFileName(data.currentPlayback)
   }
 
   // Setup poofer data structures
