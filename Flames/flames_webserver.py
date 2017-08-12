@@ -10,7 +10,7 @@ import pattern_manager
 
 PORT = 5000
 HYDRAULICS_PORT = 9000
-hydraulics_addr = "hydraulicspi.local"
+hydraulics_addr = "noetica-hydraulics.local"
 
 logger = logging.getLogger("flames")
 
