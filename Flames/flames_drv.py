@@ -230,7 +230,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
             return True
 
         except Exception as e:
-            logger.exception("Error: firingSequence is malformed or out of bounds" + e)
+            logger.exception("firingSequence is malformed or out of bounds" + str(e))
             return False
 
     ## send bangCommandList to the poofer controller boards
@@ -251,7 +251,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
         except Exception as e:
             ser.close()
             ser = None
-            logger.exception("Error sending bangCommandSequence to poofer controller boards" + e)
+            logger.exception("Error sending bangCommandSequence to poofer controller boards" + str(e))
 
     def disablePoofer(self, msgObj):
         self.disabled_poofers.add(msgObj["name"])
@@ -359,7 +359,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
         except Exception as e:
             print e
-            logger.exception("Error generating bang code: ", e)
+            logger.exception("Error generating bang code: " + str(e))
             return(1)
 
         return {"on":onBangCommands, "off":offBangCommands}
