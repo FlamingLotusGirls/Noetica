@@ -232,7 +232,7 @@ $(function ($) {
   }
   var updatePooferData = function (data) {
     data.poofers.forEach(function(poofer) {
-      var pooferState = allPoofersState[poofer.name]
+      var pooferState = allPoofersState[poofer.id.toLowerCase()]
       pooferState.enabled = poofer.enabled
     })
     pooferSequenceFiles = data.patterns
