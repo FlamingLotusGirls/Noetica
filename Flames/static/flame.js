@@ -19,7 +19,7 @@ $(function ($) {
   var hydraulicsAttractModeActive = false
   var pooferSequenceModeActive = false
   var hydraulicsRecordActive = false
-  var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
+  var hydraulicsState = {control_:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
   var hydraulicsAttractFiles = []
   var pooferSequenceFiles = []
 
@@ -95,7 +95,7 @@ $(function ($) {
     })
   }
   var updateHydraulicsDisplayState = function() {
-    ['x','y','z','pid_x','pid_y','pid_z'].forEach(function(coord) {
+    ['control_x','control_y','control_z','sculpture_x','sculpture_y','sculpture_z'].forEach(function(coord) {
       $(`.hydraulics-label-${coord}`).text(hydraulicsState[coord])
     })
   }
