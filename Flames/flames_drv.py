@@ -292,7 +292,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def stopFlameEffect(self, msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
-        filter(lambda p: p.sequence != msgObj["name"], pooferEvents)
+        filter(lambda p: p.sequence != msgObj["name"], self.pooferEvents)
 
     def setUpEvent(self, msgObj):
         # Takes a sequence object, and add to self.pooferEvents the bang commands
@@ -330,7 +330,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 # TODO: need to figure out best way to sort this thing
                 self.pooferEvents.append(pooferEvent)
                 self.pooferEvents.append(endPooferEvent)
-                pooferEvents.sort(key=itemgetter("time"))
+                self.pooferEvents.sort(key=itemgetter("time"))
 
     def makeBangCommandList(self, addresses):
         # creates a dictionary with the key being a controller ID (two digits),
