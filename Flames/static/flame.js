@@ -7,10 +7,6 @@ $(function ($) {
     poofer: 'poofer-sequence'
   }
 
-  // Test values - replace these with empty arrays in prod
-  var hydraulicsAttractFiles = ['wicked poof', 'poofy smurf', 'superfly', 'black sunshine']
-  var pooferSequenceFiles = ['poofy pooferson', 'poof daddy', 'sugar poof', 'poofy mcpoofface']
-
   // Initial values
   var selectedPoofer = null
   var inverted = false
@@ -24,6 +20,8 @@ $(function ($) {
   var pooferSequenceModeActive = false
   var hydraulicsRecordActive = false
   var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
+  var hydraulicsAttractFiles = []
+  var pooferSequenceFiles = []
 
   // jQuery helpers
   $.fn.reduce = function() {
