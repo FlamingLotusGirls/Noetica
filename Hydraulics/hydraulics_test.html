@@ -9,9 +9,9 @@
 
   <link rel="stylesheet" type="text/css" href="jquery-ui-min-1.8.24.css">
 
-  <!--[if lt IE 9]-->
+  <!--[if lt IE 9]
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
-  <!--[endif]-->
+  [endif]-->
 </head>
 <style>
 .poofer {background-color:grey; width:20px; height:20px; position:absolute;}
@@ -202,12 +202,15 @@ function getValues(){
 function getPosition() {
     $.ajax({
         type: 'GET',
-        url: "/hydraulics/position",  // XXX don't have this function yet!!!
+        url: "/hydraulics/position",  
         success: function(data, status, req) {
             console.log(data);
-            $("#x").html(data["x"]);
-            $("#y").html(data["y"]);
-            $("#z").html(data["z"]);
+            $("#controller_x").html(data["control_x"]);
+            $("#controller_x").html(data["control_x"]);
+            $("#controller_x").html(data["control_x"]);
+            $("#sculpture_x").html(data["sculpture_x"]);
+            $("#sculpture_y").html(data["sculpture_y"]);
+            $("#sculpture_z").html(data["sculpture_z"]);
         },
         error: function(req,status,errorThrown) {
             console.log("Error getting positions");
@@ -267,7 +270,7 @@ function setCurrentPlayback(playback) {
 function recordPlayback() {
     $.ajax({
         type: 'POST',
-        url: "/hydraulics",  
+        url: "/hydraulics/playbacks",  
         data: {"record":true},
         success: function(data, status, req) {
             getValues();
@@ -281,7 +284,7 @@ function recordPlayback() {
 function stopRecording() {
     $.ajax({
         type: 'POST',
-        url: "/hydraulics",  
+        url: "/hydraulics/playbacks",  
         data: {"record":false},
         success: function(data, status, req) {
             getValues();
@@ -465,7 +468,7 @@ $(document).ready(function() {
 
     var timer = setInterval(function() {
         getPosition();
-    }, 10000);
+    }, 1000);
 
 });
 

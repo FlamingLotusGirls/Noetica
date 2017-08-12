@@ -98,13 +98,13 @@ def startRecording():
     global recordingFile
     global recordingFilename
     global recordingStopTime
-
     if recordingFile != None:
         log.warning("Recording file already exists!")
         raise Exception("Recording file already exists!")
     
     recordingFile, recordingFilename = _getNewRecordingFile()
     recordingStopTime = time.time() + 30 # maximum recording time 30 seconds.
+    logger.info("Start recording to file {}".format(recordingFile)) 
         
 
 def setRecordingSource(source):
@@ -133,7 +133,7 @@ def _eventHandler(msg):
                 z = msg["z"]
             
             fileMutex.acquire()
-            recordingFile.write("%d\n%d\n%d\n" % (x,y,z))
+            recordingFile.write("%03f\n%03f\n%03f\n" % (x,y,z))
             fileMutex.release() 
         else:
             logger.info("Timeout - Auto stopping recording")
@@ -176,7 +176,7 @@ def setCurrentPlayback(playbackName):
         if not playbackName in playbackList:
             return # XXX throw exception
         with open(playbackDir + "/" + playbackName + ".rec") as f:
-            playbackData = map(int, f)
+            playbackData = map(float, f)
         playbackDataIdx = 0
         currentPlayback = playbackName
         try:

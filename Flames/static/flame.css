@@ -14,7 +14,7 @@ body {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
 /* Exceptions to inverted style */
-.inverted .poofer-enabled, .inverted .switch .slider {
+.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record {
   filter: invert(100%);
 }
 
@@ -83,9 +83,6 @@ body {
 .poofer-individual-toggle-main {
   display: flex;
   align-items: center; /* vertically centers the children */
-}
-.poofer-individual-toggle-button {
-  width: 5em;
 }
 .poofer-selected-display-container {
   display: flex;
@@ -156,6 +153,21 @@ body {
   flex: 2;
 }
 
+.btn {
+  width: 37px;
+  height: 37px;
+}
+.btn-play {
+  background: url("images/play.png") no-repeat center center;
+}
+.btn-stop {
+  background: url("images/stop.png") no-repeat center center;
+}
+.btn-record {
+  background: url("images/record.png") no-repeat center center;
+}
+
+
 /* Toggle switches */
 
 /* The switch - the box around the slider */
@@ -193,11 +205,11 @@ body {
 }
 
 input:checked + .slider {
-  background-color: #00ff00;
+  background-color: #ffaaff;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #00ff00;
+  box-shadow: 0 0 1px #ffaaff;
 }
 
 input:checked + .slider:before {

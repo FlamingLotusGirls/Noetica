@@ -1,8 +1,10 @@
 from flask import Flask
 from flask import request
 from flask import Response
+from flask import abort
 import json
 import logging
+import requests
 
 import flames_controller
 import poofermapping
@@ -10,11 +12,11 @@ import pattern_manager
 
 PORT = 5000
 HYDRAULICS_PORT = 9000
-hydraulics_addr = "hydraulicspi.local"
+hydraulics_addr = "noetica-hydraulics.local"
 
 logger = logging.getLogger("flames")
 
-app = Flask("flg", static_url_path='')
+app = Flask("flg", static_url_path="", static_folder="/home/flaming/Noetica/Flames/static")
 
 hydraulics_port = HYDRAULICS_PORT
 
@@ -157,9 +159,9 @@ def flame_pattern(patternName):
             return makeJsonResponse(json.dumps(get_pattern_status(patternName)))
 
 @app.route("/hydraulics", methods=['GET', 'POST'])
-@app.route("/hydraulics/playbacks", methods=['GET'])
+@app.route("/hydraulics/playbacks/<path:path>", methods=['GET', 'POST', 'DELETE'])
 @app.route("/hydraulics/position", methods=['GET'])
-def remote_hydraulics():
+def remote_hydraulics(path=None):
     status, response = hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
     return Response(response, status)
 
@@ -224,7 +226,6 @@ def hydraulics_passthrough(request, method, params):
 
 
 if __name__ == "__main__":
-    import requests
     from threading import Thread
     import event_manager
     import Queue

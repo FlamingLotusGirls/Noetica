@@ -11,9 +11,6 @@
 <body>
   <div class="page-container">
     <div class="header-container">
-      <label title="Select this to poll for data from the server">
-        Polling <input type="checkbox" class="polling-checkbox">
-      </label>
       <button class="invert-button" title="Select this to invert the page colors for night time">Invert colors</button>
     </div>
     <div class="main-container">
@@ -111,7 +108,12 @@
             <div class="poofer-individual-toggle-header">Individual Poofers</div>
             <div class="poofer-individual-toggle-main">
               <div class="poofer-individual-toggle-button-container">
-                <button class="poofer-individual-toggle-button">Enable</button>
+                <label class="switch-outer-label">
+                  <label class="switch">
+                    <input type="checkbox" class="poofer-individual-toggle-button">
+                    <span class="slider round"></span>
+                  </label>
+                </label>
               </div>
               <div class="poofer-selected-display-container">
                 <div class="poofer-selected-label">Selected Poofer</div>
@@ -120,6 +122,7 @@
             </div>
           </div>
           <div class="poofer-sequence-file-picker-container sequence-file-picker-container">
+            <button class="poofer-sequence-play-stop-button btn"></button>
             <ul class="poofer-sequence-file-picker sequence-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">
             </ul>
           </div>
@@ -139,7 +142,7 @@
           <div class="hydraulics-central-left-controls-container">
             <div class="hydraulics-record-toggle-container">
               <label>
-                <button class="hydraulics-record-toggle-button">Record</button>
+                <button class="hydraulics-record-toggle-button btn"></button>
               </label>
             </div>
           </div>
@@ -147,9 +150,9 @@
             <table class="hydraulics-position-display">
               <tr><th class="center" colspan="4">Status</th>
               <tr><th></th><th>Controller</th><th></th><th>Sculpture</th></tr>
-              <tr><td>x</td><td class="hydraulics-label hydraulics-label-x"></td><td>x</td><td class="hydraulics-label hydraulics-label-pid_x"></td></tr>
-              <tr><td>y</td><td class="hydraulics-label hydraulics-label-y"></td><td>y</td><td class="hydraulics-label hydraulics-label-pid_y"></td></tr>
-              <tr><td>z</td><td class="hydraulics-label hydraulics-label-z"></td><td>z</td><td class="hydraulics-label hydraulics-label-pid_z"></td></tr>
+              <tr><td>x</td><td class="hydraulics-label hydraulics-label-control_x"></td><td>x</td><td class="hydraulics-label hydraulics-label-sculpture_x"></td></tr>
+              <tr><td>y</td><td class="hydraulics-label hydraulics-label-control_y"></td><td>y</td><td class="hydraulics-label hydraulics-label-sculpture_y"></td></tr>
+              <tr><td>z</td><td class="hydraulics-label hydraulics-label-control_z"></td><td>z</td><td class="hydraulics-label hydraulics-label-sculpture_z"></td></tr>
             </table>
           </div>
         </div>
@@ -165,7 +168,7 @@
           </div>
           <div class="hydraulics-attract-center-controls-container">
             <div class="hydraulics-attract-left-controls-container">
-              <button class="hydraulics-attract-play-stop-button">Start/Stop</button>
+              <button class="hydraulics-attract-play-stop-button btn"></button>
             </div>
             <div class="hydraulics-attract-file-picker-container sequence-file-picker-container">
               <ul class="hydraulics-attract-file-picker sequence-file-picker" data-role="listview" data-filter="true" data-filter-placeholder="Search sequences..." data-inset="true">

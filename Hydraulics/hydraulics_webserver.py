@@ -55,6 +55,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")    
         
     def do_GET(self):
+	logger.debug("GET path is {}".format(self.path)) 
         if self.path.endswith(".png"):
             self.getFile('image/png')
         elif self.path.endswith(".gif"):
@@ -94,6 +95,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
     def do_POST(self):
+	logger.debug("POST, path is:{}".format(self.path))
         try:
             ctype, pdict = parse_header(self.headers['content-type'])
             if ctype == 'multipart/form-data':
@@ -173,7 +175,7 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         pass
 
 def getHydraulicsState():
-    control_x, control_y, control_z = hydraulics_drv.getControlInput()
+    control_x, control_y, control_z = hydraulics_drv.getControllerPosition()
     sculpture_x, sculpture_y, sculpture_z = hydraulics_drv.getSculpturePosition()
     
 #    loopback_x, loopback_y, loopback_z = hydraulics_drv.getLoopbackValues()
@@ -268,7 +270,7 @@ def getSculpturePosition():
     return hydraulics_drv.getSculpturePosition()
 
 def getControlPosition():
-    return hydraulics_drv.getControlInput()
+    return hydraulics_drv.getControllerPosition()
 
 
 baseURL = "http://localhost:9000/hydraulics/"

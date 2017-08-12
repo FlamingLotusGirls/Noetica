@@ -1,15 +1,11 @@
 $(function ($) {
   // Constants
-  var flameHost = 'noetica-flames.local'
+  var flameHost = 'noetica-flames.local:5000'
   var pollingInterval = 1000 // in milliseconds
   var prefixes = {
     hydraulics: 'hydraulics-attract',
     poofer: 'poofer-sequence'
   }
-
-  // Test values - replace these with empty arrays in prod
-  var hydraulicsAttractFiles = ['wicked poof', 'poofy smurf', 'superfly', 'black sunshine']
-  var pooferSequenceFiles = ['poofy pooferson', 'poof daddy', 'sugar poof', 'poofy mcpoofface']
 
   // Initial values
   var selectedPoofer = null
@@ -21,7 +17,11 @@ $(function ($) {
     'hydraulics-attract': true
   }
   var hydraulicsAttractModeActive = false
-  var hydraulicsState = {x:0,y:0,z:0,pid_x:0,pid_y:0,pid_z:0}
+  var pooferSequenceModeActive = false
+  var hydraulicsRecordActive = false
+  var hydraulicsState = {control_:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
+  var hydraulicsAttractFiles = []
+  var pooferSequenceFiles = []
 
   // jQuery helpers
   $.fn.reduce = function() {
@@ -70,7 +70,7 @@ $(function ($) {
   }
   var updatePooferToggleButtonState = function() {
     var enabled = !selectedPoofer || selectedPoofer.enabled
-    $('.poofer-individual-toggle-button').text(enabled ? 'Disable' : 'Enable')
+    $('.poofer-individual-toggle-button').prop('checked', enabled)
   }
   var updateSelectedPooferName = function() {
     var name = (selectedPoofer && selectedPoofer.name) || 'None'
@@ -95,7 +95,7 @@ $(function ($) {
     })
   }
   var updateHydraulicsDisplayState = function() {
-    ['x','y','z','pid_x','pid_y','pid_z'].forEach(function(coord) {
+    ['control_x','control_y','control_z','sculpture_x','sculpture_y','sculpture_z'].forEach(function(coord) {
       $(`.hydraulics-label-${coord}`).text(hydraulicsState[coord])
     })
   }
@@ -126,7 +126,7 @@ $(function ($) {
       }
     })
     removedFiles.forEach(function($file) {
-      $fileList.removeChild($file)
+      $file.remove()
     })
     addedFiles.forEach(function(file) {
       var $file = $(`<li class="${prefix}-file sequence-file" data-name="${file}">${file}</li>`)
@@ -145,19 +145,59 @@ $(function ($) {
     if (!selectedHydraulicsFilename()) {
       hydraulicsAttractModeActive = false
       $button.attr('disabled', true)
-      $button.text('Start')
     } else if (!toggleStates['hydraulics-attract']) {
       $button.attr('disabled', true)
     } else {
       $button.attr('disabled', false)
     }
-    $button.text(hydraulicsAttractModeActive ? 'Stop' : 'Start')
+    if (hydraulicsAttractModeActive) {
+      $button.removeClass('btn-play')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-play')
+    }
+    $button.attr('title', hydraulicsAttractModeActive ? 'Stop' : 'Start')
     if (hydraulicsAttractModeActive !== oldMode) {
       postHydraulicsAttractMode()
     }
   }
+  var updatePooferSequencePlayMode = function() {
+    var oldMode = pooferSequenceModeActive
+    var $button = $('.poofer-sequence-play-stop-button')
+    if (!selectedPooferFilename()) {
+      pooferSequenceModeActive = false
+      $button.attr('disabled', true)
+    } else {
+      $button.attr('disabled', false)
+    }
+    if (pooferSequenceModeActive) {
+      $button.removeClass('btn-play')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-play')
+    }
+    $button.attr('title', pooferSequenceModeActive ? 'Stop' : 'Start')
+    if (pooferSequenceModeActive !== oldMode) {
+      postPooferSequenceMode()
+    }
+  }
+  var updateHydraulicsRecordButtonState = function() {
+    var $button = $('.hydraulics-record-toggle-button')
+    if (hydraulicsRecordActive) {
+      $button.removeClass('btn-record')
+      $button.addClass('btn-stop')
+    } else {
+      $button.removeClass('btn-stop')
+      $button.addClass('btn-record')
+    }
+    $button.attr('title', hydraulicsAttractModeActive ? 'Stop Recording' : 'Record')
+
+  }
   var updateSelectedFileDependentState = function() {
     updateHydraulicsAttractPlayMode()
+    updatePooferSequencePlayMode()
   }
   var updateColorInversion = function() {
     if (inverted) {
@@ -179,6 +219,7 @@ $(function ($) {
     updateHydraulicsAttractFilePicker()
     updatePooferSequenceFilePicker()
     updateSelectedFileDependentState()
+    updateHydraulicsRecordButtonState()
     updateColorInversion()
   }
 
@@ -188,15 +229,19 @@ $(function ($) {
     updateSelectedPooferDependentState()
   }
   var updatePooferData = function (data) {
-    data.forEach(function(poofer) {
-      var pooferState = allPoofersState[poofer.name]
+    toggleStates['poofer-main'] = data.globalState
+    data.poofers.forEach(function(poofer) {
+      var pooferState = allPoofersState[poofer.id.toLowerCase()]
       pooferState.enabled = poofer.enabled
     })
+    pooferSequenceFiles = data.patterns.map(function(p) { return p.name })
   }
   var updateHydraulicsData = function (data) {
+    toggleStates['hydraulics-main'] = data.currentState === 'nomove' ? false : true
+    toggleStates['hydraulics-attract'] = data.autoAttractEnabled
+    hydraulicsAttractModeActive = data.currentState === 'attract' ? true : false
     hydraulicsState = data
     hydraulicsAttractFiles = data.playbacks
-    hydraulicsFileName(data.currentPlayback)
   }
 
   // Setup poofer data structures
@@ -230,7 +275,8 @@ $(function ($) {
       selectedPoofer.enabled = !selectedPoofer.enabled
       updatePooferDisplayState(selectedPoofer)
       updatePooferToggleButtonState()
-      $.post(flameUrl(`/poofers/${selectedPoofer.name}`), { enabled: selectedPoofer.enabled })
+      var name = selectedPoofer.name.toUpperCase()
+      $.post(flameUrl(`/poofers/${name}`), { enabled: selectedPoofer.enabled })
     }
   })
   Object.keys(prefixes).forEach(function(prefixKey) {
@@ -251,7 +297,17 @@ $(function ($) {
   })
   $('.hydraulics-attract-play-stop-button').on('click', function() {
     hydraulicsAttractModeActive = !hydraulicsAttractModeActive
-    postHydraulicsAttractMode()
+    postHydraulicsAttractPlayStop()
+    updateAllUIState()
+  })
+  $('.poofer-sequence-play-stop-button').on('click', function() {
+    pooferSequenceModeActive = !pooferSequenceModeActive
+    postPooferSequenceMode()
+    updateAllUIState()
+  })
+  $('.hydraulics-record-toggle-button').on('click', function() {
+    hydraulicsRecordActive = !hydraulicsRecordActive
+    postHydraulicsRecordMode()
     updateAllUIState()
   })
   Object.keys(toggleStates).forEach(function(p) {
@@ -273,16 +329,32 @@ $(function ($) {
   var postHydraulicsAttractMode = function() {
     if (hydraulicsAttractModeActive && selectedHydraulicsFilename()) {
       $.post(hydraulicsUrl(), {
-        state: 1,
+        state: 'attract',
         currentPlayback: selectedHydraulicsFilename()
       })
     } else {
       // just in case, make state consistent
       hydraulicsAttractModeActive = false
       $.post(hydraulicsUrl(), {
-        state: 0
+        state: 'passthrough'
       })
     }
+  }
+  var postPooferSequenceMode = function() {
+    var name = selectedPooferFilename()
+    if (name) {
+      $.post(flameUrl(`/patterns/${name}`), {
+        active: pooferSequenceModeActive
+      })
+    } else {
+      // just in case, make state consistent
+      pooferSequenceModeActive = false
+    }
+  }
+  postHydraulicsRecordMode = function() {
+    $.post(hydraulicsUrl('/playbacks'), {
+      record: '' + hydraulicsRecordActive
+    })
   }
   var postHydraulicsAttractRename = function() {
     var oldName = selectedHydraulicsFilename()
@@ -311,16 +383,32 @@ $(function ($) {
           currentPlayback: filename
         })
       } else if (prefix === prefixes.poofer) {
-        $.post(flameUrl(), {
-          currentPlayback: filename
-        })
+        // Do nothing - poofer filenames work differently
       }
     }
   }
   var postToggleState = function(prefix) {
-    console.log('posting toggle state')
+    if (prefix === 'poofer-main') {
+      $.post(flameUrl(), {
+        playState: toggleStates[prefix] ? 'play' : 'pause'
+      })
+    } else if (prefix === 'hydraulics-main') {
+      $.post(hydraulicsUrl(), {
+        state: toggleStates[prefix] ? 'passthrough' : 'nomove'
+      })
+    } else if (prefix === 'hydraulics-attract') {
+      if (toggleStates['hydraulics-main']) {
+        $.post(hydraulicsUrl(), {
+          autoAttractEnabled: toggleStates[prefix]
+        })
+      }
+    }
   }
-
+  var postHydraulicsAttractPlayStop = function() {
+    $.post(hydraulicsUrl(), {
+      state: hydraulicsAttractModeActive ? 'attract' : 'passthrough'
+    })
+  }
 
   // Ajax callbacks
   var flameDataCallback = function(data) {
@@ -334,10 +422,8 @@ $(function ($) {
 
   // Setup polling
   var pollingFunction = function() {
-    var polling = $('.polling-checkbox').is(':checked')
-    if (!polling) return
-    $.get(flameUrl()).done(flameDataCallback)
-    $.get(hydraulicsUrl()).done(hydraulicsDataCallback)
+    $.getJSON(flameUrl()).done(flameDataCallback)
+    $.getJSON(hydraulicsUrl()).done(hydraulicsDataCallback)
   }
   setInterval(pollingFunction, pollingInterval)
 
