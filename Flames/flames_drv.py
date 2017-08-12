@@ -195,7 +195,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                     # TODO: does this need to persist?
                     self.disablePoofer(msgObj)
 
-                elif not isFiringDisabled:
+                elif not self.isFiringDisabled:
                     if type == "flameEffectStop":
                         self.stopFlameEffect(msgObj)
 
