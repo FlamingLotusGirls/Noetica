@@ -229,6 +229,7 @@ $(function ($) {
     updateSelectedPooferDependentState()
   }
   var updatePooferData = function (data) {
+    toggleStates['poofer-main'] = data.globalState
     data.poofers.forEach(function(poofer) {
       var pooferState = allPoofersState[poofer.id.toLowerCase()]
       pooferState.enabled = poofer.enabled
