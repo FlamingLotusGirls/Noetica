@@ -238,6 +238,8 @@ $(function ($) {
   }
   var updateHydraulicsData = function (data) {
     toggleStates['hydraulics-main'] = data.currentState === 'nomove' ? false : true
+    toggleStates['hydraulics-attract'] = data.autoAttractEnabled
+    hydraulicsAttractModeActive = data.currentState === 'attract' ? true : false
     hydraulicsState = data
     hydraulicsAttractFiles = data.playbacks
   }
@@ -295,7 +297,7 @@ $(function ($) {
   })
   $('.hydraulics-attract-play-stop-button').on('click', function() {
     hydraulicsAttractModeActive = !hydraulicsAttractModeActive
-    postHydraulicsAttractMode()
+    postHydraulicsAttractPlayStop()
     updateAllUIState()
   })
   $('.poofer-sequence-play-stop-button').on('click', function() {
@@ -397,10 +399,15 @@ $(function ($) {
     } else if (prefix === 'hydraulics-attract') {
       if (toggleStates['hydraulics-main']) {
         $.post(hydraulicsUrl(), {
-          state: toggleStates[prefix] ? 'attract' : 'passthrough'
+          autoAttractEnabled: toggleStates[prefix]
         })
       }
     }
+  }
+  var postHydraulicsAttractPlayStop = function() {
+    $.post(hydraulicsUrl(), {
+      state: hydraulicsAttractModeActive ? 'attract' : 'passthrough'
+    })
   }
 
   // Ajax callbacks
