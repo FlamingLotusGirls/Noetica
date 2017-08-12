@@ -271,7 +271,8 @@ $(function ($) {
       selectedPoofer.enabled = !selectedPoofer.enabled
       updatePooferDisplayState(selectedPoofer)
       updatePooferToggleButtonState()
-      $.post(flameUrl(`/poofers/${selectedPoofer.name}`), { enabled: selectedPoofer.enabled })
+      var name = selectedPoofer.name.toUpperCase()
+      $.post(flameUrl(`/poofers/${name}`), { enabled: selectedPoofer.enabled })
     }
   })
   Object.keys(prefixes).forEach(function(prefixKey) {
