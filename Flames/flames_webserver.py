@@ -3,6 +3,7 @@ from flask import request
 from flask import Response
 import json
 import logging
+    import requests
 
 import flames_controller
 import poofermapping
@@ -224,7 +225,6 @@ def hydraulics_passthrough(request, method, params):
 
 
 if __name__ == "__main__":
-    import requests
     from threading import Thread
     import event_manager
     import Queue
