@@ -237,6 +237,7 @@ $(function ($) {
     pooferSequenceFiles = data.patterns.map(function(p) { return p.name })
   }
   var updateHydraulicsData = function (data) {
+    toggleStates['hydraulics-main'] = data.currentState === 'nomove' ? false : true
     hydraulicsState = data
     hydraulicsAttractFiles = data.playbacks
   }
