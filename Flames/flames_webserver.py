@@ -3,7 +3,7 @@ from flask import request
 from flask import Response
 import json
 import logging
-    import requests
+import requests
 
 import flames_controller
 import poofermapping
