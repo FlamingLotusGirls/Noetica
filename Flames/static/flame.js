@@ -340,7 +340,7 @@ $(function ($) {
   var postPooferSequenceMode = function() {
     var name = selectedPooferFilename()
     if (name) {
-      $.post(flameUrl(`patterns/${name}`), {
+      $.post(flameUrl(`/patterns/${name}`), {
         active: pooferSequenceModeActive
       })
     } else {
@@ -349,7 +349,7 @@ $(function ($) {
     }
   }
   postHydraulicsRecordMode = function() {
-    $.post(hydraulicsUrl('playbacks'), {
+    $.post(hydraulicsUrl('/playbacks'), {
       record: '' + hydraulicsRecordActive
     })
   }
