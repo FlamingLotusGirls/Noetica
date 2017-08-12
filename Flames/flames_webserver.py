@@ -158,7 +158,7 @@ def flame_pattern(patternName):
             return makeJsonResponse(json.dumps(get_pattern_status(patternName)))
 
 @app.route("/hydraulics", methods=['GET', 'POST'])
-@app.route("/hydraulics/playbacks", methods=['GET'])
+@app.route("/hydraulics/playbacks", methods=['GET', 'POST'])
 @app.route("/hydraulics/position", methods=['GET'])
 def remote_hydraulics():
     status, response = hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
