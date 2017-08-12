@@ -123,11 +123,11 @@ class PooferFiringThread(Thread): # comment out for unit testing
         for filename in os.listdir("/dev"):
             if filename.startswith("tty.usbserial"):  # this is the ftdi usb cable on the Mac
                 port = "/dev/" + filename
-                logger.exception("Found usb serial at " + port)
+                logger.info("Found usb serial at " + port)
                 break;
             elif filename.startswith("ttyUSB0"):      # this is the ftdi usb cable on the Pi (Linux Debian)
                 port = "/dev/" + filename
-                logger.exception("Found usb serial at " + port)
+                logger.info("Found usb serial at " + port)
                 break;
 
         if not port:
