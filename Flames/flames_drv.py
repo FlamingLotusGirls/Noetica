@@ -251,19 +251,21 @@ class PooferFiringThread(Thread): # comment out for unit testing
         except Exception as e:
             ser.close()
             ser = None
-            logger.exception("Error sending bangCommandSequence to poofer controller boards" + str(e))
+            logger.exception("Error sending bangCommandSequence to poofer controller boards: %s", str(e))
 
     def disablePoofer(self, msgObj):
         self.disabled_poofers.add(msgObj["name"])
         event_manager.postEvent({"msgType":"poofer_disabled", "id":msgObj["name"]})
 
     def enablePoofer(self, msgObj):
-        enabled_poofer = self.disabled_poofers.pop(msgObj["name"])
-        if enabled_poofer != None:
+        try:
+            self.disabled_poofers.remove(msgObj["name"])
             event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
+        except KeyError as e:
+            pass
 
     def resumeAll(self):
-        self.isFiringDisabledpped = False
+        self.isFiringDisabled = False
         event_manager.postEvent({"msgType":"global_resume", "id":"all?"})
 
     def stopAll(self):
@@ -282,7 +284,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
             event_manager.postEvent({"msgType":"global_pause", "id":"all?"})
 
         except Exception as e:
-            logger.exception("Error stopping all poofers: ", e)
+            logger.exception("Error stopping all poofers: %s", str(e))
 
 
     def startFlameEffect(self, msgObj):
@@ -292,7 +294,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def stopFlameEffect(self, msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
-        filter(lambda p: p.sequence != msgObj["name"], pooferEvents)
+        filter(lambda p: p.sequence != msgObj["name"], self.pooferEvents)
 
     def setUpEvent(self, msgObj):
         # Takes a sequence object, and add to self.pooferEvents the bang commands
@@ -330,7 +332,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 # TODO: need to figure out best way to sort this thing
                 self.pooferEvents.append(pooferEvent)
                 self.pooferEvents.append(endPooferEvent)
-                pooferEvents.sort(key=itemgetter("time"))
+                self.pooferEvents.sort(key=itemgetter("time"))
 
     def makeBangCommandList(self, addresses):
         # creates a dictionary with the key being a controller ID (two digits),
@@ -359,7 +361,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
         except Exception as e:
             print e
-            logger.exception("Error generating bang code: " + str(e))
+            logger.exception("Error generating bang code: %s", str(e))
             return(1)
 
         return {"on":onBangCommands, "off":offBangCommands}

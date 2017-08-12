@@ -224,7 +224,7 @@ def hydraulics_passthrough(request, method, params):
     print r
     print r.text
 
-    return {r.status_code, r.text} # XXX FIXME - check what r.json does on a non-json return.
+    return (r.status_code, r.text) # XXX FIXME - check what r.json does on a non-json return.
 
 
 if __name__ == "__main__":
