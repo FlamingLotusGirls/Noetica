@@ -258,9 +258,8 @@ class PooferFiringThread(Thread): # comment out for unit testing
         event_manager.postEvent({"msgType":"poofer_disabled", "id":msgObj["name"]})
 
     def enablePoofer(self, msgObj):
-        enabled_poofer = self.disabled_poofers.pop(msgObj["name"])
-        if enabled_poofer != None:
-            event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
+        self.disabled_poofers.remove(msgObj["name"])
+        event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
 
     def resumeAll(self):
         self.isFiringDisabled = False
