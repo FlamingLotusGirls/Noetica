@@ -1,6 +1,6 @@
 $(function ($) {
   // Constants
-  var flameHost = 'noetica-flames.local'
+  var flameHost = 'noetica-flames.local:5000'
   var pollingInterval = 1000 // in milliseconds
   var prefixes = {
     hydraulics: 'hydraulics-attract',
