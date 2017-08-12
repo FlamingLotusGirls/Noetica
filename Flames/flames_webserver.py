@@ -220,7 +220,7 @@ def hydraulics_passthrough(request, method, params):
     elif method=="DELETE":
         r = requests.delete(hydraulicsBaseURL + request, data=params)
     else:
-        return {404, "Endpoint unknown"}
+        return (404, "Endpoint unknown")
 
     print r
     print r.text
