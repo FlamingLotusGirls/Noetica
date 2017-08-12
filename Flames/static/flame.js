@@ -235,7 +235,7 @@ $(function ($) {
       var pooferState = allPoofersState[poofer.id.toLowerCase()]
       pooferState.enabled = poofer.enabled
     })
-    pooferSequenceFiles = data.patterns
+    pooferSequenceFiles = data.patterns.map(function(p) { return p.name })
   }
   var updateHydraulicsData = function (data) {
     hydraulicsState = data
