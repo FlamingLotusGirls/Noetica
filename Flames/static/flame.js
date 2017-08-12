@@ -380,9 +380,7 @@ $(function ($) {
           currentPlayback: filename
         })
       } else if (prefix === prefixes.poofer) {
-        $.post(flameUrl(), {
-          currentPlayback: filename
-        })
+        // Do nothing - poofer filenames work differently
       }
     }
   }
