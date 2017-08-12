@@ -128,7 +128,7 @@ $(function ($) {
       }
     })
     removedFiles.forEach(function($file) {
-      $fileList.removeChild($file)
+      $file.remove()
     })
     addedFiles.forEach(function(file) {
       var $file = $(`<li class="${prefix}-file sequence-file" data-name="${file}">${file}</li>`)
