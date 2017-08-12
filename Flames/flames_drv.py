@@ -253,20 +253,20 @@ class PooferFiringThread(Thread): # comment out for unit testing
             ser = None
             logger.exception("Error sending bangCommandSequence to poofer controller boards" + e)
 
-    def disablePoofer(msgObj):
+    def disablePoofer(self, msgObj):
         self.disabled_poofers.add(msgObj["name"])
         event_manager.postEvent({"msgType":"poofer_disabled", "id":msgObj["name"]})
 
-    def enablePoofer(msgObj):
+    def enablePoofer(self, msgObj):
         enabled_poofer = self.disabled_poofers.pop(msgObj["name"])
         if enabled_poofer != None:
             event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
 
-    def resumeAll():
+    def resumeAll(self):
         self.isFiringDisabledpped = False
         event_manager.postEvent({"msgType":"global_resume", "id":"all?"})
 
-    def stopAll():
+    def stopAll(self):
         try:
             if not ser:
                 ser.initSerial()
@@ -285,12 +285,12 @@ class PooferFiringThread(Thread): # comment out for unit testing
             logger.exception("Error stopping all poofers: ", e)
 
 
-    def startFlameEffect(msgObj):
+    def startFlameEffect(self, msgObj):
         if self.checkSequence(msgObj):
             self.setUpEvent(msgObj)
             event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
 
-    def stopFlameEffect(msgObj):
+    def stopFlameEffect(self, msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
         filter(lambda p: p.sequence != msgObj["name"], pooferEvents)
 
