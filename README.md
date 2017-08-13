@@ -25,3 +25,4 @@ https://github.com/FlamingLotusGirls/Noetica/pulls
 **Fixing a bug**
 
 *Same as above, but prefix branch name with* `bugfix/` as in `bugfix/thing-i-fixed`
+
