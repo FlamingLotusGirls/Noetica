@@ -235,7 +235,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
         #TODO: This was just grabbed from heartbeat_controller. Need to
         # make sure this is what we want
         try:
-            if not self.isRunning:
+            if not self.running or not self.isFiringDisabled:
                 return 1
 
             if not self.ser:
