@@ -230,8 +230,10 @@ class PooferFiringThread(Thread): # comment out for unit testing
     def firePoofers(self, bangCommandList):
         #TODO: This was just grabbed from heartbeat_controller. Need to
         # make sure this is what we want
+	
         try:
-            if not self.running or not self.isFiringDisabled:
+            if not self.running or self.isFiringDisabled:
+		logger.debug("Received bang command but self.running == %s  and self.isFiringDiabled == %s", str(self.running), str(self.isFiringDisabled))
                 return 1
 
             if not self.ser:
