@@ -317,7 +317,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                print "POOFER MAPPING = ", str(pooferMapping)
+                print "POOFER MAPPING = ", str(self.pooferMapping)
                 addresses = [self.pooferMapping[a] for a in ids].sort()
                 bangCommandList = self.makeBangCommandList(addresses)
 
