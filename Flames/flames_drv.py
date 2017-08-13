@@ -143,7 +143,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
         self.disableAllPoofersCommand = ""
         controllerDict = defaultdict(list)
         for attribute, value in self.pooferMapping.iteritems():
-            # print attribute, value
             controllerDict[value[:2]].append(value[2])
 
         for i in controllerDict.keys():
@@ -240,7 +239,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
             for command in bangCommandList:
                 self.ser.write(command.encode())
-                print command
+                logger.debug("Wrote this command to serial: %s", command)
 
         except Exception as e:
             self.ser.close()
@@ -342,8 +341,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
             for controllerId in addresses:
                 controllerDict[controllerId[:2]].append(controllerId[2])
 
-            print "controllerDict = ", controllerDict
-
             for i in controllerDict.keys():
                 onBangCommands.append(
                     "!" + i + "~".join(map(lambda x: x+"1", controllerDict[i])) + ".")
@@ -355,9 +352,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
             raise Exception(str(e))
 
         return {"on":onBangCommands, "off":offBangCommands}
-
-
-
 
 
 '''
