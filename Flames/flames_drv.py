@@ -160,7 +160,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 # pop events off of the list. If the current time is greater than
                 # the time associated with the event, set up for serial
 
-                currentTime - time.time()
                 event = self.pooferEvents.pop(0)
                 currentTime = time.time()
                 if event["time"] < currentTime:
