@@ -157,8 +157,10 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
                 event = self.pooferEvents.pop(0)
                 currentTime = time.time()
-                if event["time"] < currentTime:
-                    self.firePoofers(event["bangCommandList"])
+                firingTime = event["time"]
+                if firingTime < currentTime:
+                    if not currentTime - firingTime > 2000: #If it's more than two seconds in the past, ignore it
+                        self.firePoofers(event["bangCommandList"])
                 else:
                     self.pooferEvents.insert(0, event)
 

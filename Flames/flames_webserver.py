@@ -105,8 +105,6 @@ def flame_pattern(patternName):
     includesEnabled = "enabled" in request.values
     includesActive  = "active"  in request.values
 
-    print "includesActive is " + str(includesActive)
-
     if request.method == 'POST':
         # pattern create - pattern data included, but pattern name not in system
         if  (not includesPattern) and (not patternName_valid(patternName)):
