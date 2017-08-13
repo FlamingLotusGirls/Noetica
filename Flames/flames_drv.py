@@ -313,7 +313,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
         if not self.isFiringDisabled:
             for event in events:
-                ids = events["ids"]
+                ids = event["ids"]
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
