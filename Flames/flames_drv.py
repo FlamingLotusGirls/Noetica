@@ -167,13 +167,12 @@ class PooferFiringThread(Thread): # comment out for unit testing
                     self.pooferEvents.insert(0, event)
 
             if len(self.pooferEvents) > 0: # there are poofer events in the future
-                waitTime = self.events[0]["time"] - time.time()
+                waitTime = self.pooferEvents[0]["time"] - time.time()
 
             else:
                 waitTime = PooferFiringThread.TIMEOUT
 
             try:
-                # TODO:
                 cmd = self.cmdQueue.get(True, waitTime)
                 logger.debug("Received Message on cmd queue!")
                 # parse message. If this is a request to do a flame sequence,
