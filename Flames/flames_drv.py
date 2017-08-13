@@ -308,7 +308,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
         sequenceName = sequence["name"]
 
-        duration = sequence["duration"]
         events = sequence["events"]
         firstFiringTime = time.time()
 
