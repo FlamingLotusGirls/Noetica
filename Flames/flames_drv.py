@@ -317,6 +317,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
+                print "POOFER MAPPING = ", str(pooferMapping)
                 addresses = [self.pooferMapping[a] for a in ids].sort()
                 bangCommandList = self.makeBangCommandList(addresses)
 
@@ -340,10 +341,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
         # and values being all the channels for a given controller.
         # returns an object with bang commands to turn poofers both on and off
 
-        print "IN BANG COMMAND LIST MAKER"
-        print addresses
-
-
         onBangCommands = []
         offBangCommands = []
 
@@ -361,9 +358,8 @@ class PooferFiringThread(Thread): # comment out for unit testing
                     "!" + i + "~".join(map(lambda x: x+"0", controllerDict[i])) + ".")
 
         except Exception as e:
-            print e
             logger.exception("Error generating bang code: %s", str(e))
-            return(1)
+            raise Exception(str(e))
 
         return {"on":onBangCommands, "off":offBangCommands}
 
