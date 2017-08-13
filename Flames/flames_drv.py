@@ -216,8 +216,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def checkSequence(self, firingSequence):
         try:
-            eventName = firingSequence["name"]
-
+            events = firingSequence["events"]
 
             if len(events) > maxFiringSequenceSteps:
                 raise Exception ("Error: maxFiringSequenceSteps < len(firingSequence) = ", len(firingSequence))
