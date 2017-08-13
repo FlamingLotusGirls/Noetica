@@ -216,9 +216,10 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def checkSequence(self, firingSequence):
         try:
-            events = firingSequence["events"]
+            eventName = firingSequence["name"]
 
-            if len(fevents) > maxFiringSequenceSteps:
+
+            if len(events) > maxFiringSequenceSteps:
                 raise Exception ("Error: maxFiringSequenceSteps < len(firingSequence) = ", len(firingSequence))
 
             totalDuration = 0
@@ -276,9 +277,6 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 self.generateDisableAllString()
             ser.write(disableAllPoofersCommand.encode())
 
-
-            # TODO: kill all
-
             self.isFiringDisabled = True
             self.pooferEvents = list() # reset all pooferEvents
             event_manager.postEvent({"msgType":"global_pause", "id":"all?"})
@@ -288,23 +286,28 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
 
     def startFlameEffect(self, msgObj):
-        if self.checkSequence(msgObj):
-            self.setUpEvent(msgObj)
-            event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
+        try:
+            sequenceName = msgObj["name"]
+            sequence = pattern_manager.getPattern(sequenceName)
+            if self.checkSequence(sequence):
+                self.setUpEvent(sequence)
+                event_manager.postEvent({"msgType":"sequence_start", "id":msgObj["name"]})
+
+        except Exception as e:
+            logger.exception("Failed to fetch or set up sequence.%s", str(e))
 
     def stopFlameEffect(self, msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
         filter(lambda p: p.sequence != msgObj["name"], self.pooferEvents)
 
-    def setUpEvent(self, msgObj):
+    def setUpEvent(self, sequence):
         # Takes a sequence object, and add to self.pooferEvents the bang commands
         # to turn on and to turn off the specified poofers.
         # The obect added to self.pooferEvents is of format:
         # # { "sequence":"sequenceName", "time":"1502068215.5",
         # "bangCommandList":["!0011~21.", "!0021~21."] }
 
-        sequenceName = msgObj["name"]
-        sequence = pattern_manager.getPattern(sequenceName)
+        sequenceName = sequence["name"]
 
         duration = sequence["duration"]
         events = sequence["events"]
