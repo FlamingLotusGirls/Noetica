@@ -72,9 +72,6 @@ minFiringRestTime                   = 100            #milliseconds, this is the 
 maxNonfiringRestTime                = 9999             #milliseconds, dictates the maximum time for a firing sequence rest event
 maxCommandsInAFiringSequence        = 50             #integer, needs to be tested
 BAUDRATE                            = 19200
-#regex filter, precompiled for efficiency
-validFiringSequenceEvents            = re.compile('(^(RR|NN|NW|NE|NT|EN|EE|ES|ET|SE|SS|SW|ST|WS|WW|WN|WT|TN|TE|TS|TW|TT|BN|BE|BS|BW)[0-9][0-9][0-9][0-9]$)')
-
 
 ### VARIABLES ###
 #expected list of poofer controller boards
@@ -314,10 +311,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                print "POOFER MAPPING = ", str(self.pooferMapping)
-                print "IDS = ", ids
                 addresses = [self.pooferMapping[a] for a in ids]
-                print "ADDRESSES = ", addresses
                 bangCommandList = self.makeBangCommandList(addresses)
 
                 pooferEvent = {}
