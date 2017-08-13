@@ -14,7 +14,7 @@ PORT = 5000
 HYDRAULICS_PORT = 9000
 hydraulics_addr = "noetica-hydraulics.local"
 
-logging.basicConfig()
+#logging.basicConfig()
 logger = logging.getLogger("flames")
 
 app = Flask("flg", static_url_path="", static_folder="/home/flaming/Noetica/Flames/static")

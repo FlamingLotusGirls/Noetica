@@ -21,7 +21,7 @@ import mock_event_producer as mockDriver
 import event_manager
 import pattern_manager
 
-logging.basicConfig()
+#logging.basicConfig()
 logger = logging.getLogger("flames")
 
 cmdQueue   = None       # requests from upper level

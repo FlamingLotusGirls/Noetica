@@ -60,7 +60,7 @@ from collections import defaultdict
 import serial
 from operator import itemgetter
 
-logging.basicConfig()
+#logging.basicConfig()
 logger = logging.getLogger("flames_drv")
 POOFER_MAPPINGS_FILE = "./poofer_mappings.json"
 

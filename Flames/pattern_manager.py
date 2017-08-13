@@ -25,7 +25,7 @@ gPatterns = list()
 patternLock = Lock()
 patternFileName = None
 
-logging.basicConfig()
+#logging.basicConfig()
 logger = logging.getLogger('flames')
 
 def init(flameEffectsFile="./sequences.json"):

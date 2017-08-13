@@ -31,7 +31,7 @@ logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: 
 
 if __name__ == '__main__':
 
-    logging.info("Noetica Flame Controller")
+    logging.warning("Noetica Flame Controller")
     if len(sys.argv) > 1:
         configFile = sys.argv[1]
     else:
