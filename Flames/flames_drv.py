@@ -107,7 +107,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
         self.isFiringDisabled = False
         self.pooferEvents = list() # time-ordered list of poofer events
         self.disabled_poofers = set()
-        self.ser = self.initSerial()
+        self.initSerial()
         with open(pooferMappingPath) as data_file:
             self.pooferMapping = json.load(data_file)
         self.disableAllPoofersCommand = self.generateDisableAllString()
@@ -117,8 +117,8 @@ class PooferFiringThread(Thread): # comment out for unit testing
         self.running = False
 
     def initSerial(self):
-        ser = serial.Serial()
-        ser.baudrate = BAUDRATE
+        self.ser = serial.Serial()
+        self.ser.baudrate = BAUDRATE
         port = False
         for filename in os.listdir("/dev"):
             if filename.startswith("tty.usbserial"):  # this is the ftdi usb cable on the Mac
@@ -134,14 +134,13 @@ class PooferFiringThread(Thread): # comment out for unit testing
             logger.exception("No usb serial connected")
             return None
 
-        ser.port = port
-        ser.timeout = 0
-        ser.stopbits = serial.STOPBITS_ONE
-        ser.bytesize = 8
-        ser.parity   = serial.PARITY_NONE
-        ser.rtscts   = 0
-        ser.open() # if serial open fails... XXX
-        return ser
+        self.ser.port = port
+        self.ser.timeout = 0
+        self.ser.stopbits = serial.STOPBITS_ONE
+        self.ser.bytesize = 8
+        self.ser.parity   = serial.PARITY_NONE
+        self.ser.rtscts   = 0
+        self.ser.open() # if serial open fails... XXX
 
     def generateDisableAllString(self):
         self.disableAllPoofersCommand = ""
@@ -240,16 +239,16 @@ class PooferFiringThread(Thread): # comment out for unit testing
             if not self.isRunning:
                 return 1
 
-            if not ser:
-                ser = initSerial()
+            if not self.ser:
+                self.initSerial()
 
             for command in bangCommandList:
-                ser.write(command.encode())
+                self.ser.write(command.encode())
                 print command
 
         except Exception as e:
-            ser.close()
-            ser = None
+            self.ser.close()
+            self.ser = None
             logger.exception("Error sending bangCommandSequence to poofer controller boards: %s", str(e))
 
     def disablePoofer(self, msgObj):
@@ -269,11 +268,11 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def stopAll(self):
         try:
-            if not ser:
-                ser.initSerial()
+            if not self.ser:
+                self.ser.initSerial()
             if disableAllPoofersCommand == "":
                 self.generateDisableAllString()
-            ser.write(disableAllPoofersCommand.encode())
+            self.ser.write(disableAllPoofersCommand.encode())
 
             self.isFiringDisabled = True
             self.pooferEvents = list() # reset all pooferEvents
