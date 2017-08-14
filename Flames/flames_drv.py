@@ -56,6 +56,7 @@ import json
 import logging
 import event_manager
 import pattern_manager
+import poofermapping as pooferMapping
 from collections import defaultdict
 import serial
 from operator import itemgetter
@@ -96,7 +97,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 # class PooferFiringThread():
     TIMEOUT = 1 # 1 second timeout, even if no events
 
-    def __init__(self, cmdQueue, pooferMappingPath='poofer_mappings.json'):
+    def __init__(self, cmdQueue):
         Thread.__init__(self) # comment out for unit testing
         logger.info("Init Poofer Firing Thread")
         self.cmdQueue = cmdQueue
@@ -105,8 +106,8 @@ class PooferFiringThread(Thread): # comment out for unit testing
         self.pooferEvents = list() # time-ordered list of poofer events
         self.disabled_poofers = set()
         self.initSerial()
-        with open(pooferMappingPath) as data_file:
-            self.pooferMapping = json.load(data_file)
+        # with open(pooferMappingPath) as data_file:
+        #     self.pooferMapping = json.load(data_file)
         self.disableAllPoofersCommand = self.generateDisableAllString()
 
 
@@ -142,7 +143,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
     def generateDisableAllString(self):
         self.disableAllPoofersCommand = ""
         controllerDict = defaultdict(list)
-        for attribute, value in self.pooferMapping.iteritems():
+        for attribute, value in pooferMapping.iteritems():
             controllerDict[value[:2]].append(value[2])
 
         for i in controllerDict.keys():
@@ -232,7 +233,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
     def firePoofers(self, bangCommandList):
         #TODO: This was just grabbed from heartbeat_controller. Need to
         # make sure this is what we want
-	
+
         try:
             if not self.running or self.isFiringDisabled:
 		logger.debug("Received bang command but self.running == %s  and self.isFiringDiabled == %s", str(self.running), str(self.isFiringDisabled))
@@ -314,7 +315,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                addresses = [self.pooferMapping[a] for a in ids]
+                addresses = [pooferMapping[a] for a in ids]
                 bangCommandList = self.makeBangCommandList(addresses)
 
                 pooferEvent = {}
