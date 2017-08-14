@@ -56,7 +56,7 @@ import json
 import logging
 import event_manager
 import pattern_manager
-import poofermapping as pooferMapping
+from poofermapping import mappings as pooferMapping
 from collections import defaultdict
 import serial
 from operator import itemgetter
@@ -315,8 +315,14 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                addresses = [pooferMapping[a] for a in ids]
+		logger.debug("======= pooferMapping = %s", str(self.pooferMapping))
+		logger.debug("======= ids = %s", str(ids))
+
+                addresses = [self.pooferMapping[a] for a in ids]
                 bangCommandList = self.makeBangCommandList(addresses)
+
+		logger.debug("======= addresses = %s", str(addresses))
+		logger.debug("======= bangCommandList = %s", str(bangCommandList))
 
                 pooferEvent = {}
                 pooferEvent["sequence"] = sequenceName
