@@ -1,3 +1,7 @@
+@font-face {
+  font-family: 'Colonna';
+  src: url('COLONNA.TTF') format('truetype');
+}
 html {
   font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
   background-color: white;
@@ -14,7 +18,7 @@ body {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
 /* Exceptions to inverted style */
-.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record {
+.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record, .inverted .btn-stop-record {
   filter: invert(100%);
 }
 
@@ -22,35 +26,75 @@ body {
   text-align: center;
 }
 
+.fancy-title {
+  font-size: 3em;
+  font-family: 'Colonna';
+  color: #993399;
+}
+.main-title {
+  font-size: 2em;
+}
+.subtitle {
+  font-size: 1em;
+}
+
 .poofer-enabled {
   background-color: #ff9966;
   background: #ff9966 url("images/poofer-enabled.png") no-repeat center center;
+}
+.poofer-enabled.selected {
+  background-color: #ff9966;
+  background: #ff9966 url("images/poofer-enabled-selected.png") no-repeat center center;
 }
 .poofer-disabled {
   background-color: gray;
   background: gray url("images/poofer-disabled.gif") no-repeat center center;
 }
+.poofer-disabled.selected {
+  background-color: gray;
+  background: gray url("images/poofer-disabled-selected.gif") no-repeat center center;
+}
 .page-container {
   height: 100%;
 }
 .header-container {
-  text-align: right;
+}
+.invert-button {
+  float: right;
 }
 .main-container {
   display: flex;
   height: 100%;
+  background-color: #ffffff;
 }
 .flame-container {
   display: flex;
+  flex-direction: column;
   width: 60%;
-  padding: 2em;
+  padding: 1em;
+  padding-top: 0;
+  margin: 1em;
+  margin-top: 0;
+  background-color: #eeeeee;
+  border-radius: 10px;
+  box-shadow: 1px 1px 1px black;
+}
+.flame-title-container {
+}
+.flame-body-container {
+  display: flex;
 }
 .hydraulics-container {
   display: flex;
   flex-direction: column;
-  border-left: 1px solid black;
-  padding: 2em;
+  padding: 1em;
+  padding-top: 0;
+  margin: 1em;
+  margin-top: 0;
   flex: 1;
+  background-color:#eeeeee;
+  border-radius: 10px;
+  box-shadow: 1px 1px 1px black;
 }
 .poofer-display td {
   text-align: center;
@@ -77,21 +121,22 @@ body {
   flex: 1;
 }
 .poofer-main-toggle-container {
-  height: 50%;
+  display: flex;
+  justify-content: space-between;
 }
 .poofer-individual-toggle-container {
-  height: 50%;
+  margin-top: 2em;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
 }
 .poofer-individual-toggle-main {
   display: flex;
   align-items: center; /* vertically centers the children */
+  flex-direction: column;
 }
 .poofer-selected-display-container {
   display: flex;
   flex-direction: column;
-  margin-left: 1em;
   text-align: center;
 }
 .poofer-selected-label {
@@ -100,7 +145,20 @@ body {
 .poofer-selected-display-field {
   border: 1px solid black;
 }
+.poofer-sequence-file-picker-container {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2em;
+}
+.poofer-sequence-controls-container {
+  display: flex;
+  align-items: center;
+}
 
+.hydraulics-main-toggle-container {
+  display: flex;
+  justify-content: space-between;
+}
 .hydraulics-position-display {
   width: 100%;
   text-align: right;
@@ -130,6 +188,7 @@ body {
   border: 1px solid black;
   padding: 2px;
   height: 6em;
+  min-width: 250px;
   overflow-x: scroll;
 }
 .sequence-file {
@@ -143,6 +202,11 @@ body {
 .hydraulics-bottom-controls-container {
   display: flex;
   flex-direction: column;
+  background-color: #e3e3e3;
+  border-radius: 10px;
+  box-shadow: 2px 1px 1px black;
+  padding: 1em;
+  margin-top: 1em;
 }
 .hydraulics-attract-center-controls-container {
   display: flex;

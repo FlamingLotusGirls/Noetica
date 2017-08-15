@@ -89,6 +89,12 @@ $(function ($) {
       $poofer.removeClass('poofer-enabled')
       $poofer.addClass('poofer-disabled')
     }
+    console.log(poofer.name, selectedPoofer && selectedPoofer.name)
+    if (selectedPoofer && poofer.name === selectedPoofer.name) {
+      $poofer.addClass('selected')
+    } else {
+      $poofer.removeClass('selected')
+    }
   }
   var updateAllPoofersDisplayState = function() {
     allPoofers.forEach(function (pooferName) {
@@ -228,7 +234,7 @@ $(function ($) {
   // Data state setting functions
   var setSelectedPoofer = function(name) {
     selectedPoofer = allPoofersState[name]
-    updateSelectedPooferDependentState()
+    updateAllUIState()
   }
   var updatePooferData = function (data) {
     toggleStates['poofer-main'] = data.globalState
