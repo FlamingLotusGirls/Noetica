@@ -83,9 +83,11 @@ $(function ($) {
   var updatePooferDisplayState = function(poofer) {
     var $poofer = findPoofer(poofer.name)
     if (poofer.enabled) {
+      $poofer.removeClass('poofer-disabled')
       $poofer.addClass('poofer-enabled')
     } else {
       $poofer.removeClass('poofer-enabled')
+      $poofer.addClass('poofer-disabled')
     }
   }
   var updateAllPoofersDisplayState = function() {

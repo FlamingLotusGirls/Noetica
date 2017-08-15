@@ -26,6 +26,10 @@ body {
   background-color: #ff9966;
   background: #ff9966 url("images/poofer-enabled.png") no-repeat center center;
 }
+.poofer-disabled {
+  background-color: gray;
+  background: gray url("images/poofer-disabled.gif") no-repeat center center;
+}
 .page-container {
   height: 100%;
 }
