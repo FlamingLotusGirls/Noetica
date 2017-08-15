@@ -170,6 +170,7 @@ $(function ($) {
     }
   }
   var updatePooferSequencePlayMode = function() {
+    //FIXME this should set the button state based on the state of the selected file XXX
     var oldMode = pooferSequenceModeActive
     var $button = $('.poofer-sequence-play-stop-button')
     if (!selectedPooferFilename()) {
