@@ -24,7 +24,7 @@ body {
 
 .poofer-enabled {
   background-color: #ff9966;
-  background: #ff9966 url("images/poofer-enabled.gif") no-repeat center center;
+  background: #ff9966 url("images/poofer-enabled.png") no-repeat center center;
 }
 .page-container {
   height: 100%;
@@ -165,6 +165,9 @@ body {
 }
 .btn-record {
   background: url("images/record.png") no-repeat center center;
+}
+.btn-stop-record {
+  background: url("images/stop-record.png") no-repeat center center;
 }
 
 

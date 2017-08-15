@@ -19,7 +19,7 @@ $(function ($) {
   var hydraulicsAttractModeActive = false
   var pooferSequenceModeActive = false
   var hydraulicsRecordActive = false
-  var hydraulicsState = {control_:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
+  var hydraulicsState = {control_x:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
   var hydraulicsAttractFiles = []
   var pooferSequenceFiles = []
 
@@ -187,9 +187,9 @@ $(function ($) {
     var $button = $('.hydraulics-record-toggle-button')
     if (hydraulicsRecordActive) {
       $button.removeClass('btn-record')
-      $button.addClass('btn-stop')
+      $button.addClass('btn-stop-record')
     } else {
-      $button.removeClass('btn-stop')
+      $button.removeClass('btn-stop-record')
       $button.addClass('btn-record')
     }
     $button.attr('title', hydraulicsAttractModeActive ? 'Stop Recording' : 'Record')
