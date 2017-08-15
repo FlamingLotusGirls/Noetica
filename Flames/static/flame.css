@@ -32,10 +32,10 @@ body {
   color: #993399;
 }
 .main-title {
-  font-size: 2em;
+  font-size: 1.5em;
 }
 .subtitle {
-  font-size: 1em;
+  font-size: .8em;
 }
 
 .poofer-enabled {
@@ -97,6 +97,9 @@ center.fancy-title {
   background-color:#f6f6f6;
   border-radius: 10px;
   box-shadow: 1px 1px 1px black;
+}
+.poofer-display-container {
+/*  background: url("images/flg-logo.png") no-repeat top left;*/
 }
 .poofer-display td {
   text-align: center;
