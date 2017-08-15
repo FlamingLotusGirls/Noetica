@@ -89,7 +89,6 @@ $(function ($) {
       $poofer.removeClass('poofer-enabled')
       $poofer.addClass('poofer-disabled')
     }
-    console.log(poofer.name, selectedPoofer && selectedPoofer.name)
     if (selectedPoofer && poofer.name === selectedPoofer.name) {
       $poofer.addClass('selected')
     } else {
