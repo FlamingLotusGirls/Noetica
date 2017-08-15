@@ -19,7 +19,7 @@ $(function ($) {
   var hydraulicsAttractModeActive = false
   var pooferSequenceModeActive = false
   var hydraulicsRecordActive = false
-  var hydraulicsState = {control_:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
+  var hydraulicsState = {control_x:0,control_y:0,control_z:0,sculpture_x:0,sculpture_y:0,sculpture_z:0}
   var hydraulicsAttractFiles = []
   var pooferSequenceFiles = []
 
@@ -83,9 +83,16 @@ $(function ($) {
   var updatePooferDisplayState = function(poofer) {
     var $poofer = findPoofer(poofer.name)
     if (poofer.enabled) {
+      $poofer.removeClass('poofer-disabled')
       $poofer.addClass('poofer-enabled')
     } else {
       $poofer.removeClass('poofer-enabled')
+      $poofer.addClass('poofer-disabled')
+    }
+    if (selectedPoofer && poofer.name === selectedPoofer.name) {
+      $poofer.addClass('selected')
+    } else {
+      $poofer.removeClass('selected')
     }
   }
   var updateAllPoofersDisplayState = function() {
@@ -163,6 +170,7 @@ $(function ($) {
     }
   }
   var updatePooferSequencePlayMode = function() {
+    //FIXME this should set the button state based on the state of the selected file XXX
     var oldMode = pooferSequenceModeActive
     var $button = $('.poofer-sequence-play-stop-button')
     if (!selectedPooferFilename()) {
@@ -187,9 +195,9 @@ $(function ($) {
     var $button = $('.hydraulics-record-toggle-button')
     if (hydraulicsRecordActive) {
       $button.removeClass('btn-record')
-      $button.addClass('btn-stop')
+      $button.addClass('btn-stop-record')
     } else {
-      $button.removeClass('btn-stop')
+      $button.removeClass('btn-stop-record')
       $button.addClass('btn-record')
     }
     $button.attr('title', hydraulicsAttractModeActive ? 'Stop Recording' : 'Record')
@@ -226,7 +234,7 @@ $(function ($) {
   // Data state setting functions
   var setSelectedPoofer = function(name) {
     selectedPoofer = allPoofersState[name]
-    updateSelectedPooferDependentState()
+    updateAllUIState()
   }
   var updatePooferData = function (data) {
     toggleStates['poofer-main'] = data.globalState
