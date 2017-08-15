@@ -18,7 +18,7 @@ body {
   filter: invert(85%); /* this should make the background color a dark gray instead of black */
 }
 /* Exceptions to inverted style */
-.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record, .inverted .btn-stop-record {
+.inverted .poofer-enabled, .inverted .switch .slider, .inverted .btn-record, .inverted .btn-stop-record, .inverted .fancy-title {
   filter: invert(100%);
 }
 
@@ -58,9 +58,11 @@ body {
   height: 100%;
 }
 .header-container {
+  display: flex;
+  justify-content: space-between;
 }
-.invert-button {
-  float: right;
+center.fancy-title {
+  flex: 1;
 }
 .main-container {
   display: flex;
@@ -75,7 +77,7 @@ body {
   padding-top: 0;
   margin: 1em;
   margin-top: 0;
-  background-color: #eeeeee;
+  background-color: #f6f6f6;
   border-radius: 10px;
   box-shadow: 1px 1px 1px black;
 }
@@ -92,7 +94,7 @@ body {
   margin: 1em;
   margin-top: 0;
   flex: 1;
-  background-color:#eeeeee;
+  background-color:#f6f6f6;
   border-radius: 10px;
   box-shadow: 1px 1px 1px black;
 }
@@ -123,11 +125,16 @@ body {
 .poofer-main-toggle-container {
   display: flex;
   justify-content: space-between;
+  background-color: #eeeeee;
+  border-radius: 10px;
+  box-shadow: 2px 1px 1px black;
+  padding: 1em;
 }
 .poofer-individual-toggle-container {
-  margin-top: 2em;
+  margin-top: 1em;
   display: flex;
   justify-content: space-between;
+  padding: 1em;
 }
 .poofer-individual-toggle-main {
   display: flex;
@@ -148,7 +155,11 @@ body {
 .poofer-sequence-file-picker-container {
   display: flex;
   flex-direction: column;
-  padding-top: 2em;
+  margin-top: 1em;
+  background-color: #eeeeee;
+  border-radius: 10px;
+  box-shadow: 2px 1px 1px black;
+  padding: 1em;
 }
 .poofer-sequence-controls-container {
   display: flex;
@@ -159,6 +170,10 @@ body {
 .hydraulics-main-toggle-container {
   display: flex;
   justify-content: space-between;
+  background-color: #eeeeee;
+  border-radius: 10px;
+  box-shadow: 2px 1px 1px black;
+  padding: 1em;
 }
 .hydraulics-position-display {
   width: 100%;
@@ -177,8 +192,12 @@ body {
   flex-direction:row;
   align-items: center; /* vertically centers the children */
 }
+.hydraulics-central-left-controls-container {
+  display: flex;
+  align-items: flex-end;
+}
 .hydraulics-record-toggle-container {
-  margin-bottom: 1em;
+  margin-top: 1em;
 }
 .hydraulics-position-display-container {
   margin-left: 1em;
@@ -203,7 +222,7 @@ body {
 .hydraulics-bottom-controls-container {
   display: flex;
   flex-direction: column;
-  background-color: #e3e3e3;
+  background-color: #eeeeee;
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
