@@ -153,6 +153,7 @@ body {
 .poofer-sequence-controls-container {
   display: flex;
   align-items: center;
+  justify-content: space-around;
 }
 
 .hydraulics-main-toggle-container {
@@ -208,14 +209,20 @@ body {
   padding: 1em;
   margin-top: 1em;
 }
+.hydraulics-attract-toggle-container {
+  display: flex;
+  justify-content: space-between;
+}
 .hydraulics-attract-center-controls-container {
   display: flex;
   flex-direction:row;
   align-items: center;
+  justify-content: space-around;
 }
 .hydraulics-attract-left-controls-container {
   flex: 1;
-  text-align: right;
+  display: flex;
+  justify-content: center;
 }
 .hydraulics-attract-file-picker-container {
   flex: 2;
