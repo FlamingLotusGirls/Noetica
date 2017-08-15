@@ -5,7 +5,7 @@
 #
 # It expects to be passed to it the following data structures:
 #    pooferMappings     - an object containing the poofer control board address (board number and channel) of each poofer (see notes below for its expected format)
-#     disabledPoofers - list of poofers that are currently disabled
+#     disabled_poofers - list of poofers that are currently disabled
 #     firingSequence     - list of poofer firing sequence events (see notes below for its expected format)
 #
 # If it fails to correctly carry out the events in firingSequence, it will return 1.
@@ -56,7 +56,7 @@ import json
 import logging
 import event_manager
 import pattern_manager
-import poofermapping as pooferMapping
+from poofermapping import mappings as pooferMapping
 from collections import defaultdict
 import serial
 from operator import itemgetter
@@ -231,12 +231,9 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     ## send bangCommandList to the poofer controller boards
     def firePoofers(self, bangCommandList):
-        #TODO: This was just grabbed from heartbeat_controller. Need to
-        # make sure this is what we want
-
         try:
             if not self.running or self.isFiringDisabled:
-		logger.debug("Received bang command but self.running == %s  and self.isFiringDiabled == %s", str(self.running), str(self.isFiringDisabled))
+                logger.debug("Received bang command but self.running == %s  and self.isFiringDiabled == %s", str(self.running), str(self.isFiringDisabled))
                 return 1
 
             if not self.ser:
@@ -295,7 +292,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
     def stopFlameEffect(self, msgObj):
         event_manager.postEvent({"msgType":"sequence_stop", "id":msgObj["name"]})
-        filter(lambda p: p.sequence != msgObj["name"], self.pooferEvents)
+        filter(lambda p: p["sequence"] != msgObj["name"], self.pooferEvents)
 
     def setUpEvent(self, sequence):
         # Takes a sequence object, and add to self.pooferEvents the bang commands
@@ -315,6 +312,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
+                filter(lambda id: id not in self.disabled_poofers, ids)
                 addresses = [pooferMapping[a] for a in ids]
                 bangCommandList = self.makeBangCommandList(addresses)
 
