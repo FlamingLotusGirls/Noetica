@@ -98,6 +98,7 @@ center.fancy-title {
   background-color:#f6f6f6;
   border-radius: 10px;
   box-shadow: 1px 1px 1px black;
+  justify-content: space-between;
 }
 .poofer-display-container {
   background: url("images/flg-logo.gif") no-repeat bottom left;
@@ -189,10 +190,12 @@ center.fancy-title {
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
+  padding-top: 3px;
 }
 .hydraulics-position-display {
   width: 100%;
   text-align: right;
+  margin-top: 1em;
 }
 .hydraulics-position-display th {
   text-align: center;
@@ -241,6 +244,7 @@ center.fancy-title {
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
+  padding-bottom: 3px;
   margin-top: 1em;
 }
 .hydraulics-attract-toggle-container {
