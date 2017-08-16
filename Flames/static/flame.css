@@ -139,8 +139,8 @@ center.fancy-title {
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
-  margin-left:-125px;
-  margin-right:125px;
+  margin-left:-110px;
+  margin-right:110px;
 }
 .poofer-individual-toggle-container {
   margin-top: 1em;
@@ -174,8 +174,8 @@ center.fancy-title {
   box-shadow: 2px 1px 1px black;
   padding: 1em;
   padding-bottom: 0;
-  margin-left:-125px;
-  margin-right:125px;
+  margin-left:-110px;
+  margin-right:110px;
 }
 .poofer-sequence-controls-container {
   display: flex;
