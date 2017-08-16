@@ -99,7 +99,7 @@ center.fancy-title {
   box-shadow: 1px 1px 1px black;
 }
 .poofer-display-container {
-/*  background: url("images/flg-logo.png") no-repeat top left;*/
+  background: url("images/flg-logo.gif") no-repeat bottom left;
 }
 .poofer-display td {
   text-align: center;
