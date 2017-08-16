@@ -101,10 +101,14 @@ center.fancy-title {
 .poofer-display-container {
   background: url("images/flg-logo.gif") no-repeat bottom left;
 }
+.poofer-display {
+  width: 416px;
+  height: 416px;
+}
 .poofer-display td {
   text-align: center;
-  width: 2em;
-  height: 2em;
+  width: 32px;
+  height: 32px;
 }
 .poofer-display td, .poofer-selected-display-field {
   font-variant: small-caps;
