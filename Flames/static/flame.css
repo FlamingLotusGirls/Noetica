@@ -39,12 +39,10 @@ body {
 }
 
 .poofer-enabled {
-  background-color: #ff9966;
-  background: #ff9966 url("images/poofer-enabled.png") no-repeat center center;
+  background: url("images/poofer-enabled.png") no-repeat center center;
 }
 .poofer-enabled.selected {
-  background-color: #ff9966;
-  background: #ff9966 url("images/poofer-enabled-selected.png") no-repeat center center;
+  background: url("images/poofer-enabled-selected.png") no-repeat center center;
 }
 .poofer-disabled {
   background-color: gray;
@@ -115,9 +113,6 @@ center.fancy-title {
 .poofer-display td, .poofer-selected-display-field {
   font-variant: small-caps;
   text-transform: capitalize;
-}
-.poofer {
-  border: 1px solid black;
 }
 .poofer--blank {
   border: none;
