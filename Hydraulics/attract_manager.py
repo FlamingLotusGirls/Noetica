@@ -25,7 +25,7 @@ def init(timeout = 30, autoEnable=False, delta=20):
     
     attractModeTimeout(timeout)
     attractModeDelta(delta)
-    event_manager.addListener(eventHandler, "pos")
+    event_manager.addListener(eventHandler, "cpos")
     
     gAttractModeStartTime = time.time() + gAttractModeTimeout
     gAttractMonitorThread = Thread(target=attractModeMonitor)
@@ -98,11 +98,16 @@ def attractModeTimeout(timeout=None): # time in seconds
 
 def autoAttractModeEnabled(tf=None):
     global gAutoAttractModeEnabled
+    global gAttractModeStartTime
+   
+    logger.debug("Attract mode enable called, tf is {}".format(tf)) 
     if tf == None:
         return gAutoAttractModeEnabled
     else:
         gAutoAttractModeEnabled = (tf == True)
-        
+        if (gAutoAttractModeEnabled) :
+            gAttractModeStartTime = time.time() + gAttractModeTimeout 	 
+
 def attractModeDelta(delta=None):
     global gMaxDelta
     if delta == None:
@@ -113,7 +118,8 @@ def attractModeDelta(delta=None):
 def eventHandler(msg):
     global gInAttractMode
     global gAttractModeStartTime
-    if msg["msgType"] == "pos":
+    global gOldPos
+    if msg["msgType"] == "cpos":
         x = msg["x"]
         y = msg["y"]
         z = msg["z"]
@@ -133,10 +139,12 @@ def eventHandler(msg):
         
 def attractModeMonitor():
     while isRunning:
-        if (time.time() > gAttractModeStartTime and not gInAttractMode and gAutoAttractModeEnabled):  
+        if (time.time() > gAttractModeStartTime and (not gInAttractMode) and gAutoAttractModeEnabled):  
+            logger.info("Starting attract mode automatically")
             startAttractMode()
         time.sleep(1)
-             
+        logger.debug("Attract monitor. gInAttractMode: {}, gAutoAttract: {}, startTime: {}".format(gInAttractMode, gAutoAttractModeEnabled, gAttractModeStartTime))     
+        logger.debug("ATTRACT monitor. gInterruptible: {}".format(gInterruptable))
 if __name__ == "__main__":
     try:
         logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d: %(message)s', level=logging.DEBUG)

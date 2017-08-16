@@ -241,7 +241,7 @@ class four_20mA_IO_Thread(Thread):
                                          
                 # write to output
                 if outputEnabled:
-#                    logger.debug("writing output, {}, {}, {}".format(control[0], control[1], control[2]))
+                    logger.debug("writing output, {}, {}, {}".format(control[0], control[1], control[2]))
                     self.writeAnalogOutput(4,  0, control[0])
                     self.writeAnalogOutput(4,  1, control[1])
                     self.writeAnalogOutput(22, 0, control[2])

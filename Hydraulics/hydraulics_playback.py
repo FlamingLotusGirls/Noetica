@@ -22,7 +22,7 @@ recordingFilename = None
 recordingStopTime = 0
 recordingFile = None
 recordingSources = "sculpture, controller"
-recordingSource = "sculpture"
+recordingSource = "controller"
 fileMutex = Lock()
 
 # XXX - should the playback file specify the interval in which it is expected to run? Probably...
