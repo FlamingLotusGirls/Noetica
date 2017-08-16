@@ -136,17 +136,20 @@ center.fancy-title {
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
+  margin-left:-125px;
+  margin-right:125px;
 }
 .poofer-individual-toggle-container {
   margin-top: 1em;
   display: flex;
   justify-content: space-between;
   padding: 1em;
+  margin-left:-25px;
+  margin-right:25px;
 }
 .poofer-individual-toggle-main {
   display: flex;
-  align-items: center; /* vertically centers the children */
-  flex-direction: column;
+  justify-content: space-around;
 }
 .poofer-selected-display-container {
   display: flex;
@@ -167,6 +170,8 @@ center.fancy-title {
   border-radius: 10px;
   box-shadow: 2px 1px 1px black;
   padding: 1em;
+  margin-left:-125px;
+  margin-right:125px;
 }
 .poofer-sequence-controls-container {
   display: flex;
@@ -215,7 +220,7 @@ center.fancy-title {
   border: 1px solid black;
   padding: 2px;
   height: 6em;
-  min-width: 250px;
+  min-width: 200px;
   overflow-x: scroll;
 }
 .sequence-file {
