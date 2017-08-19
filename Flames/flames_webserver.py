@@ -5,10 +5,12 @@ from flask import abort
 import json
 import logging
 import requests
+import urllib
 
 import flames_controller
 import poofermapping
 import pattern_manager
+import triggers
 
 PORT = 5000
 HYDRAULICS_PORT = 9000
@@ -18,6 +20,7 @@ hydraulics_addr = "noetica-hydraulics.local"
 logger = logging.getLogger("flames")
 
 app = Flask("flg", static_url_path="", static_folder="/home/flaming/Noetica/Flames/static")
+#app = Flask("flg", static_url_path="")
 
 hydraulics_port = HYDRAULICS_PORT
 
@@ -81,7 +84,30 @@ def specific_flame_status(poofer_id):
         return "" # XXX check for errors as a matter of course
     else:
         return makeJsonResponse(json.dumps(get_poofer_status(poofer_id)))
-
+        
+@app.route("/flame/triggers", methods=['GET','POST'])
+def flame_triggers():
+    ''' GET /flame/triggers: Get list of all flame triggers, whether active or not
+        POST /flame/triggers: Creates a new flame trigger from json patterndata'''
+    if request.method == 'GET':
+        return makeJsonResponse(json.dumps(get_triggers()))
+    else:
+        if not "triggerData" in request.values: 
+            return Response("'triggerData' must be present", 400)
+        set_trigger(urllib.unquote(request.values["triggerData"]))
+        return Response("", 200)    
+        
+@app.route("/flame/triggers/<triggerId>", methods=['DELETE', 'POST'])
+def flame_trigger(triggerId):    
+    if request.method == 'DELETE':
+        delete_trigger(triggerId)
+        return Response("", 200)
+    if request.method == 'POST':
+        if not "newName" in request.values:
+            return Response("'newName' must be present", 400)
+        rename_trigger(triggerId, request.values["newName"])
+        return Response("", 200)
+            
 @app.route("/flame/patterns", methods=['GET','POST'])
 def flame_patterns():
     ''' GET /flame/patterns: Get list of all flame patterns, whether active or not
@@ -96,7 +122,7 @@ def flame_patterns():
             return Response("", 200)
 
 
-@app.route("/flame/patterns/<patternName>", methods=['GET', 'POST'])
+@app.route("/flame/patterns/<patternName>", methods=['GET', 'POST', 'DELETE'])
 def flame_pattern(patternName):
     ''' POST /flame/patterns/<patternName> active=[true|false] enabled=[true|false]. Start an
     individual pattern (or stop it if it is currently running). Enable/disable a pattern.
@@ -150,6 +176,10 @@ def flame_pattern(patternName):
 
 
         return ""
+    elif request.method == "DELETE":
+        pattern_manager.deletePattern(patternName)
+        pattern_manager.savePatterns()
+        return ""
 
     else:
         if (not patternName_valid(patternName)):
@@ -162,8 +192,9 @@ def flame_pattern(patternName):
 @app.route("/hydraulics/playbacks/<path:path>", methods=['GET', 'POST', 'DELETE'])
 @app.route("/hydraulics/position", methods=['GET'])
 def remote_hydraulics(path=None):
-    status, response = hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
-    return Response(response, status)
+#    status, response = hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
+    return hydraulics_passthrough(request.script_root + request.path, request.method, request.values)
+#    return Response(response, status)
 
 def get_status():
     pooferList = list()
@@ -200,6 +231,22 @@ def get_flame_patterns():
 def set_flame_pattern(pattern):
     pattern_manager.addOrModifyPattern(json.loads(pattern))
     pattern_manager.savePatterns()
+    
+def get_triggers():
+    return triggers.getTriggers()
+    
+def rename_trigger(oldName, newName):
+    triggers.renameTrigger(oldName, newName)
+    triggers.saveTriggers()
+    
+def set_trigger(triggerData):
+    print ("*** trigger data is {}".format(triggerData))
+    triggers.addOrModifyTrigger(json.loads(triggerData))
+    triggers.saveTriggers()
+    
+def delete_trigger(triggerName):
+    triggers.deleteTrigger(triggerName)
+    triggers.saveTriggers()
 
 def poofer_id_valid(id):
     return id in poofermapping.mappings
@@ -213,18 +260,24 @@ def param_valid(value, validValues):
 def hydraulics_passthrough(request, method, params):
     hydraulicsBaseURL = "http://" + hydraulics_addr + ":" + str(hydraulics_port)
     if method == "POST":
-        r = requests.post(hydraulicsBaseURL+request, data=params)
+        r = requests.post(hydraulicsBaseURL + request, data=params)
     elif method == "GET":
         r = requests.get(hydraulicsBaseURL + request, data=params)
-    elif method=="DELETE":
+    elif method == "DELETE":
         r = requests.delete(hydraulicsBaseURL + request, data=params)
     else:
-        return (404, "Endpoint unknown")
-
-    print r
-    print r.text
-
-    return (r.status_code, r.text) # XXX FIXME - check what r.json does on a non-json return.
+        return Response("Endpoing unknown", 404)
+    
+    print r.headers["content-type"]
+    
+    return Response(r.text, r.status_code) 
+    
+#     print r
+#     print r.text
+#     print r.json
+#     print r.content-type
+# 
+#     return (r.status_code, r.text) # XXX FIXME - check what r.json does on a non-json return.
 
 
 if __name__ == "__main__":

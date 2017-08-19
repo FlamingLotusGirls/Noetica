@@ -20,6 +20,7 @@ POSITION_PORT = 9001
 HYDRAULICS_POLL_INTERVAL = 200  # hardware poll interval, in ms
 PLAYBACK_DIR = "playbacks/"
 HOME_DIR = "/home/flaming/Noetica/"
+INACTIVITY_TIMEOUT = 30 #in seconds
 
 
 logging.basicConfig(format='%(asctime)-15s %(levelname)s %(module)s %(lineno)d:  %(message)s', level=logging.DEBUG)
@@ -41,6 +42,7 @@ if __name__ == '__main__':
         POSITION_PORT = int(configParser.get("hydraulics", "streamPort", POSITION_PORT))
         HYDRAULICS_POLL_INTERVAL = int(configParser.get("hydraulics", "pollInterval", HYDRAULICS_POLL_INTERVAL))
         PLAYBACK_DIR = configParser.get("hydraulics", "playbackDir", PLAYBACK_DIR)
+        INACTIVITY_TIMEOUT = configParser.get("hydraulics", "inactivityTimeout", INACTIVITY_TIMEOUT)
         HOME_DIR = configParser.get("hydraulics", "homeDir", HOME_DIR)
     except Exception:
         logging.exception("Problem reading config file {}, defaulting configuration".format(configFile))
@@ -49,20 +51,22 @@ if __name__ == '__main__':
         # set cwd 
         os.chdir(HOME_DIR)
         
+        # set debug level
+        
         # initialize event manager
         event_manager.init()
         
-        # setup position streamer - XXX should be in own process
+        # setup position streamer 
         hydraulics_stream.init(POSITION_PORT)
 
-        # setup driver  - XXX own process?
+        # setup driver 
         hydraulics_drv.init(HYDRAULICS_POLL_INTERVAL)
 
         # setup playback - NB - this is a set of utility functions, not own thread
         hydraulics_playback.init(HOME_DIR + PLAYBACK_DIR)    
         
         # set up attract mode
-        attract_manager.init()    
+        attract_manager.init(int(INACTIVITY_TIMEOUT))    
 
         # initialize httpserver 
         httpd = BaseHTTPServer.HTTPServer(("", HTTP_PORT), hydraulics_webserver.HydraulicsHandler)

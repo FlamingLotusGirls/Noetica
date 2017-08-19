@@ -47,6 +47,7 @@ h1 {font-family:sans-serif}
       </select>
       <div name="playDiv" style="margin-top:10px"><button type="button" class="top-button" onclick="playSequence()">Play Sequence</button> &nbsp;
       <button type="button" id="saveSequenceButton" class="top-button"> Save Sequence </button>&nbsp;
+      <button type="button" id="deleteSequenceButton" class="top-button"> Delete Sequence </button>&nbsp;
       <button type="button" id="createEventButton" class="top-button"> Create New Event </button>
       </div>
       <div id="EventTemplate" style="display:none; height:160px; border-width:2px; border-style:solid; margin-top:10px; padding:10px" >   
@@ -85,7 +86,7 @@ h1 {font-family:sans-serif}
 
 var gSequences = []
 
-console.log("TESTING TESTING");
+
 $(document).ready(function() {
     console.log("READY called");
     $("#modifySequenceButton").hide()
@@ -237,13 +238,24 @@ $("#saveSequenceButton").click(function() {
     $.ajax({
         type: 'POST',
         data: {"patternData":jsonStr},
-        url:"http://localhost:5000/flame/patterns",
+        url:"/flame/patterns",
         success: function(data, status, req) {
             console.log("Save sequence success!");
         }
     });   
 });
 
+$("#deleteSequenceButton").click(function() {
+    var jsonStr = serializeSequence();
+    $.ajax({
+        type: 'DELETE',
+        data: {"patternData":jsonStr},
+        url:"/flame/patterns/" + encodeURI($("#sequenceName").val()),
+        success: function(data, status, req) {
+            console.log("Delete sequence success!");
+        }
+    });   
+});
 // XXX page reload on post??
 var newSequenceId = 1;
 
@@ -303,7 +315,7 @@ function hideNone() {
 function getSequences(){
     $.ajax({
         type: 'GET',
-        url:"http://localhost:5000/flame/patterns",
+        url:"/flame/patterns",
         success: function(data, status, req) {
             gSequences = data;
             if (data.length > 0) {

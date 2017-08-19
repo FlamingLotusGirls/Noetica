@@ -55,37 +55,44 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")    
         
     def do_GET(self):
-	logger.debug("GET path is {}".format(self.path)) 
-        if self.path.endswith(".png"):
-            self.getFile('image/png')
-        elif self.path.endswith(".gif"):
-            self.getFile('image/gif')
-        elif self.path.endswith(".jpeg"):
-            self.getFile('image/jpeg')
-        elif self.path.endswith(".html"):
-            self.getFile('text/html')
-        elif self.path.endswith(".js"):
-            self.getFile('application/javascript')
-        elif self.path.endswith(".css"):
-            self.getFile('text/css')
-        else:
-            pathArray = self.path[1:].split("/")
-            if pathArray[-1] == "":
-                del pathArray[-1]
-            if (len(pathArray) >= 1 and pathArray[0] == "hydraulics"):
-                if (len(pathArray) == 1 ):  # just 'hydraulics'
-                    self.send200(getHydraulicsState())
-                elif (len(pathArray) == 2 and pathArray[1] == "playbacks"):
-                    self.send200(getPlaybacks())
-                elif (len(pathArray) == 2 and pathArray[1] == "position"):
-                    x,y,z = getControlPosition()
-                    xx, yy, zz = getSculpturePosition()
-                    self.send200({"control_x":x, "control_y":y, "control_z":z,
-                                  "sculpture_x":xx, "sculpture_y":yy, "sculpture_z":zz})
+        try: 
+            logger.debug("GET path is {}".format(self.path)) 
+            if self.path.endswith(".png"):
+                self.getFile('image/png')
+            elif self.path.endswith(".gif"):
+                self.getFile('image/gif')
+            elif self.path.endswith(".jpeg"):
+                self.getFile('image/jpeg')
+            elif self.path.endswith(".html"):
+                self.getFile('text/html')
+            elif self.path.endswith(".js"):
+                self.getFile('application/javascript')
+            elif self.path.endswith(".css"):
+                self.getFile('text/css')
+            else:
+                pathArray = self.path[1:].split("/")
+                if pathArray[-1] == "":
+                    del pathArray[-1]
+                if (len(pathArray) >= 1 and pathArray[0] == "hydraulics"):
+                    if (len(pathArray) == 1 ):  # just 'hydraulics'
+                        self.send200(getHydraulicsState())
+                    elif (len(pathArray) == 2 and pathArray[1] == "playbacks"):
+                        self.send200(getPlaybacks())
+                    elif (len(pathArray) == 3 and pathArray[1] == "playbacks"):
+                        logger.info("Getting playback data for {}".format(pathArray[2]))
+                        playbackData = hydraulics_playback.getSpecifiedPlaybackData(pathArray[2])
+                        self.send200(playbackData)
+                    elif (len(pathArray) == 2 and pathArray[1] == "position"):
+                        x,y,z = getControlPosition()
+                        xx, yy, zz = getSculpturePosition()
+                        self.send200({"control_x":x, "control_y":y, "control_z":z,
+                                      "sculpture_x":xx, "sculpture_y":yy, "sculpture_z":zz})
+                    else:
+                        self.sendError(404)
                 else:
                     self.sendError(404)
-            else:
-                self.sendError(404)
+        except e:
+            self.sendError(500)
                 
     def do_DELETE(self):
         pathArray = self.path[1:].split("/")
@@ -142,6 +149,8 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         newPlayback = postvars["currentPlayback"][0]
                         logger.debug("Setting current playback to {}".format(newPlayback))
                         hydraulics_playback.setCurrentPlayback(newPlayback)
+                    if "reboot" in postvars:
+                        os.system("reboot now")
                     
                     
                 elif len(pathArray) == 2 and (pathArray[1] == "playbacks"):   
@@ -156,6 +165,10 @@ class HydraulicsHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     if "currentPlayback" in postvars:
                         newPlayback = postvars["currentPlayback"][0]
                         hydraulics_playback.setCurrentPlayback(newPlayback)
+                elif len(pathArray) == 2 and (pathArray[1] == "config"):
+                    for var in postvars:
+                        configManager.setConfig(var, postvars[var][0])
+                      
                 elif len(pathArray) == 3 and (pathArray[1] == "playbacks"):
                     playbackName = pathArray[2]
                     if "newName" in postvars:

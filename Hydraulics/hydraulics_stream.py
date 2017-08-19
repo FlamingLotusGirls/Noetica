@@ -76,7 +76,7 @@ class HydraulicsConnectionManager(Thread):
                         self.threadLock.release()
                         hydraulics_stream_thread.start()
                     else:
-                        logger.debug("socket timeout")
+                        #logger.debug("socket timeout")
                         continue
                     # XXX - do I want to use multiprocessing here? Rpis are quad core
                     # do I need the lock if I'm doing multicoring? check all of this
@@ -140,7 +140,7 @@ class PositionStreamer(Thread):
                         self.running = False
                         break
                     sentBytes = sentBytes + nBytes 
-                    logger.debug("sent {} bytes to consumer".format(sentBytes)) 
+                    #logger.debug("sent {} bytes to consumer".format(sentBytes)) 
             except Queue.Empty:
                 # Queue empty, nothing to see here
                 pass

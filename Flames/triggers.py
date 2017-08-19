@@ -27,17 +27,20 @@ import flames_controller
 
 triggerList = list()
 triggerThread = None
+triggerFileName = None
 
 logger = logging.getLogger('triggers')
 
 
 def init(triggerFile, addr, port):
     global triggerThread
+    global triggerFileName
     logger.info("Trigger Init, trigger file {}, listening at {}:{}".format(triggerFile, addr, port))
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f)
         logger.debug("triggerparams are {}".format(triggerParams))
+        triggerFileName = triggerFile
         triggerThread = TriggerManager(addr, port, triggerParams)
         triggerThread.start()
     except IOError:
@@ -57,9 +60,23 @@ def getTriggers():
     newTriggers = list()
     for trigger in triggers:
         newTrigger = {"name": trigger.getName(), "enabled": trigger.isEnabled(),
-                      "active": trigger.isActive()}
+                      "active": trigger.isActive(), "points":trigger.getPoints()}
         newTriggers.append(newTrigger)
     return newTriggers
+    
+def deleteTrigger(triggerName):
+    triggerThread.deleteTrigger(triggerName)
+    
+def addOrModifyTrigger(trigger):
+    triggerThread.addOrModifyTrigger(trigger)
+    
+def renameTrigger(oldName, newName):
+    triggerThread.renameTrigger(oldName, newName)
+    
+def saveTriggers(triggerFile=None):
+    print("SAVING")
+    triggerThread.saveTriggers(triggerFile)
+
 
 def enableTrigger(triggerName):
     logger.debug("Enabling trigger {}".format(triggerName))
@@ -125,6 +142,58 @@ class TriggerManager(Thread):
                 triggerObject.enable(True)
 
 # x = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values())) # XXX this is a way of creating an object with attributes instead of a generic dict, but I don't quite understand how it works yet
+    def getTriggers(self):
+        return self.triggerList
+        
+    def deleteTrigger(self, triggerName):
+        for trigger in self.triggerList:
+            if trigger.getName() == triggerName:
+                logger.debug("Removing trigger {}".format(triggerName))
+                self.triggerList.remove(trigger)
+                break
+ 
+    def renameTrigger(self, oldName, newName):
+        for trigger in self.triggerList:
+            if trigger.getName() == oldName:   
+                trigger.setName(newName)     
+                
+    def addOrModifyTrigger(self, trigger):
+        if not _verifyTriggerParamsObject(trigger):
+            logger.warning("New trigger does not validate")
+            return
+            
+        foundTrigger = None
+        for curTrigger in self.triggerList:
+            if curTrigger.name == trigger["name"]:
+                foundTrigger = curTrigger
+                logger.debug("Modifying trigger")
+                break
+        
+        if foundTrigger:
+            enabled = foundTrigger.isEnabled()
+            self.triggerList.remove(foundTrigger)
+        else:
+            logger.debug("Adding trigger")
+            enabled = True     
+        
+        triggerObject = TriggerObject(trigger["name"],
+                                      trigger["points"])
+        self.triggerList.append(triggerObject)
+        triggerObject.enable(enabled)
+        
+    def saveTriggers(self, filename=None):
+        logger.debug("Saving triggers");
+        newList = []
+        for trigger in self.triggerList:
+            print ("***Trigger is {}".format(trigger))
+            newTrigger = {"name":trigger.name, "points":trigger.points}
+            newList.append(newTrigger)
+        
+        if filename == None:
+            filename = triggerFileName
+        with open(filename, 'w') as f: # open write
+            json.dump(newList, f)
+    
 
     def run(self):
         self.running = True
@@ -216,6 +285,9 @@ class TriggerObject():
         self.pointTarget = 0 # target is first point
         self.lastTriggerPointTime = 0
         self.lingerTime = 0  # wall time - linger until this time
+        self.recoveryTime = 5 # number of seconds after successful completion before trigger becomes active again
+        self.inRecovery = False
+        self.recoveryStartTime = 0
         logger.info("INIT trigger object {}".format(name))
 
     def enable(self, bEnable):
@@ -226,18 +298,27 @@ class TriggerObject():
 
     def getName(self):
         return self.name
+    
+    def setName(self, newName):
+        self.name = newName;
+        
+    def getPoints(self):
+        return self.points
 
     def isEnabled(self):
         return self.state != DISABLED
 
     def isActive(self):
-        return (self.state == LINGERING) or (self.state == LOOKING and self.pointTarget > 0)
+        return (not self.inRecovery) and ((self.state == LINGERING) or (self.state == LOOKING and self.pointTarget > 0))
 
-    def _restartTrigger(self):
+    def _restartTrigger(self, bRecover = False):
         self.pointTarget = 0
         self.state = LOOKING
         self.lastTriggerPointTime = 0
         self.lingerTime = 0
+        if bRecover:
+            self.inRecovery = True
+            self.recoveryStartTime = time.time()
 
     def processSculpturePosition(self, position):
 #        print "Received position, ", position
@@ -246,6 +327,11 @@ class TriggerObject():
             return
 
         currentTime = time.time()
+        if self.inRecovery and currentTime > self.recoveryStartTime + self.recoveryTime:
+            self.inRecovery = False
+        else: 
+            return # we're in the recovery period. Bail.
+            
         targetPoint = self.points[self.pointTarget]
 
         if self.state == LINGERING:
@@ -263,7 +349,7 @@ class TriggerObject():
                     self.lastTriggerPointTime = currentTime
                 else: # end of trigger sequence. Back to the looking for the first point
                     logger.debug("End of trigger {}".format(self.name))
-                    self._restartTrigger()
+                    self._restartTrigger(True)
                     return
             else:
                 pass # still lingering...
@@ -296,7 +382,7 @@ class TriggerObject():
             elif self.pointTarget != 0:  # target 0 has no transition envelope, since there was no previous point
                 prevPoint = self.points[self.pointTarget-1]
                 if not TriggerObject._inEnvelopeSausage(prevPoint, targetPoint, position):
-                    self.restartTrigger()
+                    self._restartTrigger()
                     return
 
 

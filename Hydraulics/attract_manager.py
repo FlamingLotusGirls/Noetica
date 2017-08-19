@@ -3,8 +3,9 @@ import time
 from threading import Thread
 import event_manager
 import hydraulics_drv
+#import hydraulics_playback
 
-gAttractModeTimeout = 30 # seconds
+gAttractModeTimeout = 30 #
 gAutoAttractModeEnabled = False
 gOldPos = [0,0,0]
 gMaxDelta = 20  # 0-4095 scale
@@ -17,7 +18,7 @@ isRunning = True
 
 logger = logging.getLogger("hydraulics")
 
-def init(timeout = 30, autoEnable=False, delta=20):
+def init(timeout = 30, delta=20, autoEnable=False):
     global gAttractModeStartTime
     global gAttractMonitorThread
     
@@ -66,6 +67,7 @@ def startAttractMode(interruptable=True):
     gInAttractMode = True
     logger.info("Starting attract mode")
     gOriginalDriverInput = hydraulics_drv.getInputSource()
+#    hydraulics_playback.startLeadIn()
     hydraulics_drv.setInputSource("recording")
 #    gAttractModeTimeout = 0
     gInterruptable = interruptable
@@ -119,6 +121,7 @@ def eventHandler(msg):
     global gInAttractMode
     global gAttractModeStartTime
     global gOldPos
+
     if msg["msgType"] == "cpos":
         x = msg["x"]
         y = msg["y"]
@@ -151,13 +154,13 @@ if __name__ == "__main__":
         event_manager.init()
         hydraulics_drv.init()
         init(2, True)
-        event_manager.postEvent({"msgType":"pos", "x":50, "y":50, "z":50})
+        event_manager.postEvent({"msgType":"cpos", "x":50, "y":50, "z":50})
         time.sleep(5)
         if gInAttractMode:
             logger.debug("SUCCESS! In attract mode!")
         else:
             logger.debug("FAILURE! Not in attract mode")
-        event_manager.postEvent({"msgType":"pos", "x":500, "y":50, "z":50})
+        event_manager.postEvent({"msgType":"cpos", "x":500, "y":50, "z":50})
         time.sleep(1)
         if not gInAttractMode:
             logger.debug("SUCCESS! Not in attract mode!")

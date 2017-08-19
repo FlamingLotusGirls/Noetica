@@ -82,6 +82,18 @@ def getPlaybackList():
     ''' Return list of all available recorded sequences (playbacks)'''
     return playbackList
     
+def getSpecifiedPlaybackData(playbackName):
+    ''' Returns data associated with the specified playback. Used for visualization'''
+    with open(playbackDir + "/" + playbackName + ".rec") as f:
+        playbackData = map(float, f)
+    readableData = []
+    for i in range(0, len(playbackData)/3):
+        datum = {"x":playbackData[i*3],
+                 "y":playbackData[i*3 + 1],
+                 "z":playbackData[i*3 + 2]}
+        readableData.append(datum)
+    return readableData
+    
 def renamePlayback(oldName, newName):
     ''' Rename a playback. Necessary since by default playbacks are named with a timestamp'''
     global playbackList
