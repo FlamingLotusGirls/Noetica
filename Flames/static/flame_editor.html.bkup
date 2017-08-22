@@ -274,7 +274,14 @@ $("#sequenceSelect").on('change', function(){
     } else if (currentSelection == "none") {
         // explicit do nothing... this should only happen if there are no other sequences
     } else {
-        var selectedSequence = findSequence(currentSelection); 
+        var selectedSequence = null; 
+        for (var i=0; i<gSequences.length; i++) {
+            var sequence = gSequences[i];
+            if (sequence["name"] == currentSelection) {
+                selectedSequence = sequence;
+                break;
+            }
+        }
         if (selectedSequence != null) {
             populateSequence(selectedSequence);
         } else {
@@ -282,18 +289,6 @@ $("#sequenceSelect").on('change', function(){
         }
     }
 });
-
-function findSequence(name) {
-    var foundSequence = null; 
-    for (var i=0; i<gSequences.length; i++) {
-        var sequence = gSequences[i];
-        if (sequence["name"] ==  name) {
-            foundSequence = sequence;
-            break;
-        }
-    }
-    return foundSequence;
-}
 
 function createEmptySequence(name){
     return {"name": name, "events":[], "modifiable":true};
@@ -361,10 +356,8 @@ function populateSequence(sequence){
             var poofer = newEvent.find("#" + pooferId);
             $(poofer).addClass('active');              
         }
-        // NB - start time returned in seconds as a float
-        // because other code is python. Not what I'd like, but what I get
-        var startTime = event["startTime"]*1000;
-        var duration = event["duration"]*1000;
+        var startTime = event["startTime"];
+        var duration = event["duration"];
         var startTimeType;
         var startTimeModified;
         if (startTime > prevEndTime) {
@@ -379,7 +372,7 @@ function populateSequence(sequence){
         }
         prevStartTime = startTime;
         prevEndTime = startTime + duration;
-        newEvent.find("#duration").val(duration);
+        newEvent.find("#duration").val(event["duration"]);
         newEvent.find("#startDelay").val(startTimeModified); 
         newEvent.find("select#eventStart").val(startTimeType);
     }
@@ -483,7 +476,7 @@ function serializeSequence() {
             var pooferId = $(poofer).attr("id");
             idList.push(pooferId)
         }
-        pooferEvent = {"ids":idList, "startTime":startTime/1000, "duration":duration/1000};
+        pooferEvent = {"ids":idList, "startTime":startTime, "duration":duration};
         eventList.push(pooferEvent);
         var endTime = startTime + duration;
         prevStartTime = startTime;
@@ -491,14 +484,7 @@ function serializeSequence() {
     }    
     // sort in ascending order
     eventList.sort(function(event1, event2){ return event1["startTime"] - event2["startTime"]; });
-    
-    // Grab modifiable flag
-    var curSequence = findSequence($("#sequenceName").val());
-    var mFlag = true;
-    if (curSequence != null) {
-       mFlag = curSequence["modifiable"]; 
-    } 
-    var sequence = {"name":$("#sequenceName").val(), "events":eventList, "modifiable":mFlag};
+    var sequence = {"name":$("#sequenceName").val(), "events":eventList};
     console.log(sequence);
     return JSON.stringify(sequence);
 }

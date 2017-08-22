@@ -269,6 +269,8 @@ def hydraulics_passthrough(request, method, params):
         return Response("Endpoing unknown", 404)
     
     print r.headers["content-type"]
+
+    logger.debug("About to return response {} {}".format(r.text, r.status_code))
     
     return Response(r.text, r.status_code) 
     

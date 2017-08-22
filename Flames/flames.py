@@ -62,7 +62,7 @@ if __name__ == '__main__':
         pooferCommandQueue = Queue.Queue()
                 
         # Initialize Poofer board connection
-        flames_drv.init(pooferCommandQueue)
+        flames_drv.init(pooferCommandQueue, HOME_DIR)
         
         # Initialize the Event Manager
         event_manager.init()

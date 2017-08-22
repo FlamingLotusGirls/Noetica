@@ -138,6 +138,17 @@ center.fancy-title {
   margin-left:-110px;
   margin-right:110px;
 }
+.poofer-manual-toggle-container {
+  display: flex;
+  justify-content: space-between;
+  background-color: #eeeeee;
+  border-radius: 10px;
+  box-shadow: 2px 1px 1px black;
+  padding: 1em;
+  margin-left:-450px;
+  margin-right:450px;
+  position:absolute;
+}
 .poofer-individual-toggle-container {
   margin-top: 1em;
   display: flex;

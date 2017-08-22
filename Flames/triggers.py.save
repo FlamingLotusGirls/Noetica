@@ -67,16 +67,16 @@ def getTriggers():
                       "active": trigger.isActive(), "points":trigger.getPoints()}
         newTriggers.append(newTrigger)
     return newTriggers
-
+    
 def deleteTrigger(triggerName):
     triggerThread.deleteTrigger(triggerName)
-
+    
 def addOrModifyTrigger(trigger):
     triggerThread.addOrModifyTrigger(trigger)
-
+    
 def renameTrigger(oldName, newName):
     triggerThread.renameTrigger(oldName, newName)
-
+    
 def saveTriggers(triggerFile=None):
     triggerThread.saveTriggers(triggerFile)
 
@@ -141,51 +141,51 @@ class TriggerManager(Thread):
 # x = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values())) # XXX this is a way of creating an object with attributes instead of a generic dict, but I don't quite understand how it works yet
     def getTriggers(self):
         return self.triggerList
-
+        
     def deleteTrigger(self, triggerName):
         for trigger in self.triggerList:
             if trigger.getName() == triggerName:
                 self.triggerList.remove(trigger)
                 break
-
+ 
     def renameTrigger(self, oldName, newName):
         for trigger in self.triggerList:
-            if trigger.getName() == oldName:
-                trigger.setName(newName)
-
+            if trigger.getName() == oldName:   
+                trigger.setName(newName)     
+                
     def addOrModifyTrigger(self, trigger):
         if not _verifyTriggerParamsObject(trigger):
             logger.warning("New trigger does not validate")
             return
-
+            
         foundTrigger = None
         for curTrigger in self.triggerList:
             if curTrigger.name == trigger["name"]:
                 foundTrigger = curTrigger
                 break
-
+        
         if foundTrigger:
 #            enabled = foundTrigger.isEnabled()
             self.triggerList.remove(foundTrigger)
         else:
-            enabled = True
-
+            enabled = True     
+        
         triggerObject = TriggerObject(trigger["name"],
                                       trigger["points"])
         self.triggerList.append(triggerObject)
         triggerObject.enable(trigger["enabled"])
-
+        
     def saveTriggers(self, filename=None):
         newList = []
         for trigger in self.triggerList:
             newTrigger = {"name":trigger.name, "points":trigger.points}
             newList.append(newTrigger)
-
+        
         if filename == None:
             filename = triggerFileName
         with open(filename, 'w') as f: # open write
             json.dump(newList, f)
-
+    
 
     def run(self):
         self.running = True
@@ -289,10 +289,10 @@ class TriggerObject():
 
     def getName(self):
         return self.name
-
+    
     def setName(self, newName):
         self.name = newName;
-
+        
     def getPoints(self):
         return self.points
 
@@ -323,7 +323,7 @@ class TriggerObject():
                 self.inRecovery = False
             else:
                 return # we're in the recovery period. Bail.
-
+            
         targetPoint = self.points[self.pointTarget]
 
         if self.state == LINGERING:
@@ -348,7 +348,6 @@ class TriggerObject():
         elif self.state == LOOKING:
           # Check whether time has expired
             if self.pointTarget != 0 and (currentTime > (self.lastTriggerPointTime + targetPoint["transitTime"])):
-                logger.debug("Restarting trigger {}".format(self.name))
                 self._restartTrigger(True)
                 return
 
@@ -366,7 +365,7 @@ class TriggerObject():
                     self.state = LOOKING
                     self.pointTarget = self.pointTarget + 1
                     if self.pointTarget >= len(self.points):
-                        self._restartTrigger(True)
+                        self._restartTrigger(True) 
 
             # haven't gotten to desired point - are we in the envelope?
             elif self.pointTarget != 0:  # target 0 has no transition envelope, since there was no previous point
@@ -382,7 +381,7 @@ class TriggerObject():
             dx = 0.15
         else:
             dx = target["x"] - testPoint["x"]
-
+        
         if (target["y"] == "any"):
             dy = 0.15
         else:
@@ -392,9 +391,10 @@ class TriggerObject():
             dz = 0.15
         else:
             dz = target["z"] - testPoint["z"]
-
+        
         distanceSquare = (dx)**2 + (dy)**2 + (dz)**2
         return distanceSquare <= envelopeRadius
+
 
     @staticmethod
     def _inEnvelopeSausage(targetA, targetB, testPoint):
@@ -429,19 +429,19 @@ class TriggerObject():
         if targetA["x"] == "any":
             ux = 0
         else:
-            ux = (testPoint["x"] - targetA["x"])*dx
+            ux = (testPoint["x"] - targetA["x"])*dx 
 
         if (targetA["y"] == "any"):
             uy = 0
         else:
-            uy = (testPoint["y"] - targetA["y"])*dy
+            uy = (testPoint["y"] - targetA["y"])*dy 
 
         if targetA["z"] == "any":
             uz = 0
         else:
-            uz = (testPoint["z"] - targetA["z"])*dz
-
-
+            uz = (testPoint["z"] - targetA["z"])*dz 
+                
+                
         u = (ux*dx + uy*dy + uz*dz) / float(d2)
 
         # clamp u - because we want an answer inside the line segment.
@@ -459,7 +459,7 @@ class TriggerObject():
             ddy = 0
         else:
             ddy = (targetA["y"] + u * dy) - testPoint["y"]
-
+     
         if (targetA["z"] == "any"):
             ddz = 0
         else:

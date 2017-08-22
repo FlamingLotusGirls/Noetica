@@ -1,0 +1,1108 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Noetica Trigger Editor</title>
+  <meta name="description" content="Noetica Trigger Editor">
+<!--  <link rel="stylesheet" type="text/css" href="jquery-ui-min-1.8.24.css"> -->
+  <link rel="stylesheet" type="text/css" href="jquery-ui-min-1.8.24.css">
+</head>
+<style>
+.scrollCanvas {overflow:scroll; width:500px;}
+</style>
+
+<body>
+    <div> 
+    <h2> Noetica Trigger Editor </h2>
+    Trigger: &nbsp;<select id="triggerName"></select>&nbsp;&nbsp;Enabled<input type="checkbox" id="triggerEnabled"><br>
+    Reference Recording: &nbsp; <select id="recordingNames"></select><br><br>
+    </div>
+    <div>
+    X AXIS:&nbsp 
+        <div class="scrollCanvas">
+            <canvas id="x_canvas" class="appCanvas"  width="1000" height="100" style="border:1px solid #000000;">
+        </div>
+    </div>
+    <div>
+    Y AXIS:&nbsp        
+        <div class="scrollCanvas">
+            <canvas id="y_canvas" class="appCanvas" width="1000" height="100" style="border:1px solid #000000;">
+        </div>
+    </div>
+    <div>
+    Z AXIS:&nbsp 
+        <div class="scrollCanvas">
+            <canvas id="z_canvas" class="appCanvas" width="1000" height="100" style="border:1px solid #000000;">
+        </div>
+    </div>
+    <div>
+    <button id="addTrigger">Create New Trigger</button>
+    <button id="deleteTrigger">Delete Trigger</button>
+    <button id="renameTrigger">Rename Trigger</button>
+    <button id="saveChanges">Save Trigger</button>
+    <div id="editPoint" title="Edit Trigger Point" style="display:none">
+        <select id="pointType">
+            <option value="linger">Linger</option>
+            <option value="passthrough">Passthrough</option>
+        </select>
+        <br>Transit Time:&nbsp;<input id="transitTime" type="numeric">
+        <span id="linger"><br>Linger Time:&nbsp;<input id="lingerTime" type="numeric" value="2"></span>
+        <br>Flame Effect&nbsp;<select id="flameEffect">
+            <option value="None">None</option>
+        </select>    
+    </div>
+    <div id="newTrigger" title="Name Trigger" style="display:none">
+        Trigger Name: <input id="initialTriggerName" type="text" value="">
+    </div>
+    <div id="changeName" title="Change Trigger Name" style="display:none">
+        Old Name: <span id="oldName"></span><br>
+        New Name <input id="newName" type="text">
+    </div>
+</body>
+</html>
+<script type="text/javascript" src="jquery-1.4.3.min.js"></script>
+<script type="text/javascript" src="jquery-ui-min-1.8.24.js"></script>
+
+<script>
+
+var gEditPoint = null;
+var gReferencePoints = [];
+//var gDataPoints = [];
+var gTimescale = 100;
+var gTriggers = null;
+var gTriggerLineSet = [[],[],[]];
+
+var canvasX = null;
+var canvasY = null;
+var canvasZ = null;
+
+function Point(x,y,z,t) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.t = t;
+}
+
+function TriggerPoint(point, time) {
+    this.t = time;
+    
+    this.point = point;
+    
+    if (typeof(point.type) == "undefined" || point.type == null) {
+        point.type = "linger";
+    }
+    
+    if (typeof(point.transitTime) == "undefined" || point.transitTime == null) {
+        point.transitTime = 3.0;
+    }
+
+    if (typeof(point.lingerTime) == "undefined" || point.lingerTime == null) {
+        point.lingerTime = 3.0;
+    }
+
+    if (typeof(point.flameEffect) == "undefined" || point.flameEffect == null) {
+        point.flameEffect = null;
+    }
+}
+
+function AppCanvas(DOMCanvas, children) {
+    this.DOMCanvas = DOMCanvas;
+    if (children != null && typeof(children) != "undefined") {
+        this.children = children;
+    } else {
+        this.children = [];
+    }
+
+    this.offset = {"x":0, "y":0};
+    
+    this.width = function() {
+        return DOMCanvas.width;
+    }
+    
+    this.height = function() {
+        return DOMCanvas.height;
+    }
+    
+    this.setDirty = function() {
+        var myThis = this;
+        setTimeout(function() {
+            myThis.render();
+        }, 1);
+    }
+    
+    this.clear = function() {
+        var ctx = this.DOMCanvas.getContext("2d");
+        ctx.save();
+
+        // Use the identity matrix while clearing the canvas
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.DOMCanvas.width, this.DOMCanvas.height);
+        // Restore the transform
+        ctx.restore();
+    }
+    
+    
+    this.render = function() {
+        this.clear();
+        // render our children
+        var ctx = this.DOMCanvas.getContext("2d");
+        for (var i = 0; i<this.children.length; i++) {
+            this.children[i].render(ctx, this.offset);
+        }    
+    }
+    
+    this.onClick = function(point) {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onClick) == "function") {
+                this.children[i].onClick(point);
+            }
+        }
+    }
+    
+    this.onDoubleClick = function(point) {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onDoubleClick) == "function") {
+                this.children[i].onDoubleClick(point);
+            }
+        }
+    }
+    
+    this.onMouseDown = function(point) {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onMouseDown) == "function") {
+                this.children[i].onMouseDown(point);
+            }
+        }
+    }
+    
+    this.onMouseUp = function(point) {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onMouseUp) == "function") {
+                this.children[i].onMouseUp(point);
+            }
+        }
+    }
+    
+    this.onMouseMove = function(point) {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onMouseMove) == "function") {
+                this.children[i].onMouseMove(point);
+            }
+        }        
+    }
+    
+    this.onMouseEnter = function() {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onMouseEnter) == "function") {
+                this.children[i].onMouseEnter();
+            }
+        }
+    }
+    
+    this.onMouseLeave = function() {
+        for (var i = 0; i<this.children.length; i++) {
+            if (typeof(this.children[i].onMouseLeave) == "function") {
+                this.children[i].onMouseLeave();
+            }
+        }
+    }
+    
+    this.addChild = function(child, z) {
+        var idx = z;
+        if (z >= this.children.length) {
+            idx = this.children.length;
+        }
+        if (z <0 ) {
+            idx = 0;
+        }
+        this.children.splice(idx, 0, child);
+    }
+    
+    this.setOffset = function(x,y) {
+        this.offset.x = x;
+        this.offset.y = y;
+    }
+}
+
+function getTriggerData() {
+    var triggerName = $('#triggerName').val();
+    var trigger = null;
+    var nTriggers = gTriggers.length;
+    for (var i=0; i<nTriggers; i++) {
+        if (gTriggers[i].name == triggerName) {
+            trigger = gTriggers[i];
+            break;
+        }
+    }
+    return trigger;
+}
+
+function getCursorPosition(event) {
+    var rect = this.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+//    console.log("x: " + x + " y: " + y);
+    
+    return {"x":x, "y":y};
+}
+
+function redrawAll() {
+    console.log("REDRAW");
+    canvasX.setDirty();
+    canvasY.setDirty();
+    canvasZ.setDirty();
+}
+
+HTMLCanvasElement.prototype.relCoords = getCursorPosition;
+
+$(document).ready(function (){
+
+    // load dynamic data
+    loadTriggers();
+    loadFlameEffectsList();
+    loadRecordingList();
+
+    // Set up test data
+    gReferencePoints = [];
+    for (var i=0; i<10; i++) {
+        var point = new Point((i*5)/100, 10/100, (i*5)/100, i*0.5);
+        gReferencePoints.push(point);
+    }
+    
+    for (var i=0; i<10; i++) {
+        var point = new Point((50-(i*5))/100, 10/100, (50-(i*5))/100, 5+(i*0.5));
+        gReferencePoints.push(point);
+    }
+    
+    gReferencePoints.sort(function(a,b) {return a.t - b.t});
+    
+    var dataPoints = [];
+    var point1 = new TriggerPoint({"x":10/100, "y":10/100, "z":10/100}, 20);
+    var point2 = new TriggerPoint({"x":20/100, "y":0, "z":0}, 0);
+    dataPoints.push(point1);
+    dataPoints.push(point2);
+
+    dataPoints.sort(function(a,b) {return a.t - b.t});
+    
+    // Create internal drawing objects
+    canvasX = new AppCanvas(document.getElementById("x_canvas"));
+    canvasY = new AppCanvas(document.getElementById("y_canvas"));
+    canvasZ = new AppCanvas(document.getElementById("z_canvas"));
+    
+    staticLineSetX  = new StaticLineSet(canvasX, gReferencePoints, "x");
+    staticLineSetY  = new StaticLineSet(canvasY, gReferencePoints, "y");
+    staticLineSetZ  = new StaticLineSet(canvasZ, gReferencePoints, "z");
+    gTriggerLineSet[0] = new TriggerLineSet(canvasX, dataPoints, "x");  
+    gTriggerLineSet[1] = new TriggerLineSet(canvasY, dataPoints, "y");  
+    gTriggerLineSet[2] = new TriggerLineSet(canvasZ, dataPoints, "z");  
+    
+    canvasX.addChild(staticLineSetX, 0);
+    canvasX.addChild(gTriggerLineSet[0], 1);
+    
+    canvasY.addChild(staticLineSetY, 0);
+    canvasY.addChild(gTriggerLineSet[1], 1);
+    
+    canvasZ.addChild(staticLineSetZ, 0);
+    canvasZ.addChild(gTriggerLineSet[2], 1);
+
+    
+    // Set up handlers 
+    var cjq = $(".appCanvas");
+    cjq.click(function(e) {
+        e.preventDefault(); 
+        var point = this.relCoords(e);
+        window["canvas" + this.id[0].toUpperCase()].onClick(point);
+    });
+    
+    cjq.dblclick(function(e) {
+        e.preventDefault();
+        var point = this.relCoords(e);
+        window["canvas" + this.id[0].toUpperCase()].onDoubleClick(point);
+    });
+    cjq.mouseenter(function(e) {
+        window["canvas" + this.id[0].toUpperCase()].onMouseEnter(e);
+    });
+    
+    cjq.mouseleave(function(e) {
+        window["canvas" + this.id[0].toUpperCase()].onMouseLeave(e);
+    });
+    
+    cjq.mousemove(function(e) {
+        var point = this.relCoords(e);
+        window["canvas" + this.id[0].toUpperCase()].onMouseMove(point);
+    });
+    
+    cjq.mousedown(function(e) {
+        var point = this.relCoords(e);
+        window["canvas" + this.id[0].toUpperCase()].onMouseDown(point);
+    });
+    
+    cjq.mouseup(function(e) {
+        var point = this.relCoords(e);
+        window["canvas" + this.id[0].toUpperCase()].onMouseUp(point);
+    });
+        
+    $("#pointType").change(function() {
+        if (this.value == "linger") {
+            $("#linger").show();
+        } else {
+            $("#linger").hide();
+        }
+    });
+    
+    $("#recordingNames").change(function() {
+        selectRecording(this.value);
+    });
+
+   $( "#editPoint" ).dialog({ autoOpen: false,
+                           modal:true,
+                           buttons: { "OK": function() { 
+                                        gEditPoint.point.type   = $("#pointType").val();
+                                        gEditPoint.point.lingerTime  = parseFloat($("#lingerTime").val());
+                                        gEditPoint.point.flameEffect = $("#flameEffect").val();
+                                        gEditPoint.point.transitTime = parseFloat($("#transitTime").val());
+                                        if (gEditPoint.point.flameEffect == "None") {
+                                            gEditPoint.point.flameEffect = null;
+                                        }
+                                        gEditPoint = null;
+                                        resyncTime();
+                                        redrawAll();
+                                        $(this).dialog("close");
+                                         },
+                                      "Delete Trigger Point": function() {
+                                        deletePoint(gEditPoint);
+                                        gEditPoint = null;
+                                        $(this).dialog("close");
+                                         },
+                                      "Cancel": function() {
+                                        gEditPoint = null;
+                                       $(this).dialog("close");
+                                       }
+                                    }
+                     });
+                     
+   $( "#newTrigger" ).dialog({ autoOpen: false,
+                           modal:true,
+                           buttons: { "OK": function() { 
+                                         var newName = $('#initialTriggerName').val().trim();
+                                         if (newName != "") {
+                                             createNewTrigger(newName);
+                                             $('#triggerName').val(newName);
+                                             viewTrigger($('#triggerName option:selected').val());
+                                         }
+                                         $(this).dialog("close");
+                                       },
+                                      "Cancel": function() {
+                                         $(this).dialog("close");
+                                       }
+                                    }
+                     });                     
+
+   $( "#changeName" ).dialog({ autoOpen: false,
+                           modal:true,
+                           buttons: { "OK": function() { 
+                                         var newName = $('#newName').val().trim();
+                                         var oldName = $('#triggerName').val();
+                                         if (newName != "") {
+                                         
+                                             // name change - back end
+                                             renameTrigger(oldName, newName);
+                                             
+                                             // name change - internal structures
+                                             var nTriggers = gTriggers.length;
+                                             for (var i=0; i<nTriggers; i++) {
+                                                if (gTriggers[i].name == oldName) {
+                                                    gTriggers[i].name = newName;
+                                                    break;
+                                                }
+                                             }
+                                             
+                                             // name change - options
+                                             var option = $('#triggerName option[value=' + oldName + ']')
+                                             option.val(newName);
+                                             option.text(newName);
+                                         }
+                                         $(this).dialog("close");
+                                       },
+                                      "Cancel": function() {
+                                         $(this).dialog("close");
+                                       }
+                                    }
+                     });                         
+    $("#addTrigger").click(function() {
+        console.log("Should be adding a trigger now");
+        $("#newTrigger").dialog("open");
+    });
+    
+    $("#deleteTrigger").click(function() {
+        console.log("Should be deleting a trigger now");
+        deleteTrigger($('#triggerName option:selected').val());
+    });
+    
+    $("#renameTrigger").click(function() {
+        console.log("Should be renaming a trigger now");
+        $('#oldName').text($('#triggerName').val());
+        $('#newName').val("");
+        $('#changeName').dialog("open");
+    });
+ 
+    
+    $("#saveChanges").click(function() {
+        console.log("Attempting to save trigger " + $("#triggerName").val());
+        saveTrigger($("#triggerName").val());
+    });
+    
+    $("#triggerName").change(function() {
+        viewTrigger($('#triggerName option:selected').val());
+    });
+    
+    $("#triggerEnabled").change(function() {
+       // enable or disable trigger 
+       trigger = getTriggerData();
+       trigger.enabled = $("#triggerEnabled")[0].checked;
+    });
+
+    // And go show stuff
+    redrawAll();
+});
+
+function deletePoint(point) {
+    var index = gTriggerLineSet[0].points.indexOf(point); // XXX abomination
+    gTriggerLineSet[0].points.splice(index, 1);
+    var triggerData = getTriggerData();
+    triggerData.points.splice(index,1);
+    resyncPoints();
+    redrawAll();
+}
+
+function resyncPoints() {
+    /* This recalculates the transitTimes based on absolute time and lingerTimes */
+    trigger = gTriggerLineSet[0]; // XXX this is abomination, but I'm out of time
+    nPoints = trigger.points.length;
+    if (nPoints == 0) {
+        return;
+    }
+    
+    for (var i=1; i<nPoints; i++) {
+        var curPoint = trigger.points[i];
+        var prevPoint = trigger.points[i-1];
+        curPoint.point.transitTime = curPoint.t - prevPoint.t;
+        if (prevPoint.point.type == "linger") {
+            curPoint.point.transitTime -= prevPoint.point.lingerTime;
+        }
+    }
+}
+
+
+function resyncTime() {
+    /* This recalculates the absolute time based on transitTimes and lingerTimes */
+    trigger = gTriggerLineSet[0]; // XXX this is abomination, but I'm out of time
+    nPoints = trigger.points.length;
+    if (nPoints == 0) {
+        return;
+    }
+    
+    var firstPoint = trigger.points[0];
+    var time = firstPoint.t; // start counting from position of first point, mostly to be nice to user
+    if (firstPoint.point.type == "linger" && firstPoint.point.lingerTime > 0){
+        time += firstPoint.point.lingerTime;
+    }
+    
+    for (var i=1; i<nPoints; i++) {
+        var point = trigger.points[i];
+        time += point.point.transitTime;
+        point.t = time;
+        if (point.point.type == "linger") {
+            time += point.point.lingerTime;    
+        }    
+    }
+}
+
+function viewTrigger(triggerName) {
+    $('#triggerName option:selected').val(triggerName);
+    var trigger = null;
+    var nTriggers = gTriggers.length;
+    for (var i=0; i<nTriggers; i++) {
+        if (gTriggers[i].name == triggerName) {
+            trigger = gTriggers[i];
+            break;
+        }
+    }
+    
+    if (trigger == null) {
+        return;
+    }
+  
+    console.log("Enabled is " + trigger.enabled);
+ 
+    $('#triggerEnabled')[0].checked = trigger.enabled; 
+    
+    var nPoints = trigger.points.length;
+    var internallyFormattedPoints = []
+    time = 0;
+    for (var i=0; i<nPoints; i++) {
+        var point = trigger.points[i];
+        time += point.transitTime;
+        var newPoint = new TriggerPoint(point, time); 
+        internallyFormattedPoints.push(newPoint);
+        if (point.type == 'linger') {
+            time += point.lingerTime;
+        }
+    }
+    internallyFormattedPoints.sort(function(a,b) { return a.t - b.t;});
+
+    for (var i=0; i<3; i++) {
+        gTriggerLineSet[i].loadPoints(internallyFormattedPoints);
+    }
+}
+             
+function StaticLineSet(parentCanvas, points, coordinate) {
+    this.points = points;
+    this.color = "black";
+    this.width = 2;
+    this.envelopeColor = "AliceBlue"
+    this.movementDelta = 0.1;
+    this.coordinate = coordinate;
+    this.offset = {"x":0, "y":0};
+    this.parentCanvas = parentCanvas;
+        
+    this.setLineColor = function(color) {
+        this.color = color;
+    };
+    
+    this.setStrokeWidth = function(width) {
+        this.width = width;
+    };
+    
+    this.render = function(drawingCtx, offset) {
+        if (this.points == null || (typeof(this.points) == 'undefined')) {
+            console.log("Cannot render - not points!");
+            return;
+        }
+        
+        if (this.offset == null || (typeof(this.offset) == 'undefined')) {
+            offset = {"x":0, "y":0}
+        }
+        
+        var nPoints = this.points.length; 
+        var scaleFactor = $('#x_canvas').height();
+        
+        // draw lines next
+        var firstPoint = this.points[0];
+        drawingCtx.lineWidth   = this.strokeWidth;
+        drawingCtx.strokeStyle = this.color;
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(firstPoint.t * gTimescale + offset.x, (firstPoint[this.coordinate] * scaleFactor) + offset.y);
+        for (var i=1; i<nPoints; i++) {
+            drawingCtx.lineTo(this.points[i].t * gTimescale + offset.x, (this.points[i][this.coordinate] * scaleFactor) + offset.y);
+        }
+        drawingCtx.stroke();
+    };
+}
+
+
+var Mode = { NORMAL:1,
+             DRAG: 2,
+            };
+            
+function TriggerLineSet(parentCanvas, points, coordinate, offset) {
+    this.selectedPoint = null;
+    this.preSelectedPoint = null;
+    this.color = 0x000000; // Black is always good
+    this.strokeWidth = 1.5; 
+    this.pointSize = 5; 
+    this.pointColor = "grey";
+    this.flamingPointColor = "orange";
+    this.selectedColor = "red";
+    this.mode = Mode.NORMAL;
+    this.movementDelta = 0.1; // XXX need to get this from config data!! Also want to be able to set the global envelope
+    this.envelopeColor = "AliceBlue";
+    this.parentCanvas = parentCanvas;
+    this.coordinate = coordinate;  // name of coordinate - x, y, or z
+    
+    this.scaleFactor = $('#x_canvas').height(); // XXX this is abomination
+    
+    if (typeof(offset) == "undefined" || offset == null) {
+        this.offset = {"x":0, "y":0};
+    } else {
+        this.offset = offset;
+    }
+
+    if (typeof(points) == "undefined" || points == null) {
+        this.points = [];
+    } else {
+        this.points = points;
+    }
+    
+    this.addPoint = function(point) {
+        this.points.push(point);
+        this.sortPoints();
+        resyncPoints();
+    }
+    
+    // XXX - why load and view as separate but identical functions?
+    // because they're fucking not. This one is just for the line set. That's the problem 
+    // I'm trying to solve!!!
+    this.loadPoints = function(points) { // list of TriggerPoints
+        this.points = points;
+        /*
+        var nPoints = points.length;
+        var time = 0;
+        this.points = [];
+        for (var i=0; i<nPoints; i++) {
+            var curPoint = points[i];
+            time += curPoint.transitTime;
+
+            var newPoint = new TriggerPoint(curPoint, time);
+//            var newPoint = new TriggerPoint(curPoint.x, curPoint.y, curPoint.z, time, 
+//                            curPoint.type, curPoint.transitTime, curPoint.lingerTime, curPoint.flameEffect); 
+            this.points.push(newPoint);
+            time += curPoint.lingerTime;
+        }
+        this.sortPoints();
+        */
+        this.setDirty();
+    }
+    
+    this.deletePoint = function(point) {
+        var idx = this.points.indexOf(point);
+        if (idx >= 0) {
+            this.points.splice(i, 1);
+        }
+    }
+    
+    this.selectPoint = function(point) {
+        if (this.points.indexOf(point) >= 0) {
+            this.selected = point;
+        }
+    }
+    
+    this.setLineColor = function(color) {
+        this.color = color;
+    }
+    
+    this.setStrokeWidth = function(width) {
+        this.strokeWidth = width;
+    }
+    
+    this.setPointSize = function(size) {
+        this.pointSize = size;
+    }
+    
+    this.setPointColor = function(color) {
+        this.pointColor = color;
+    }
+    
+    this.setMovementDelta = function(delta) {
+        this.movementDelta = delta;
+    }
+    
+    this.onMouseDown = function(point) {
+        // check to see if we've clicked on a point, if we're not in drag mode
+        var hitPoint = this.hitTest(point, this.pointSize);
+        if (hitPoint != null) {
+            this.preSelectedPoint = hitPoint;
+            var self = this;
+            setTimeout(function() { 
+                console.log("SetTimeout called!");
+                if (self.preSelectedPoint == hitPoint) {
+                    console.log("SELECTED POINT!");
+                    self.selectedPoint = hitPoint;
+                    self.mode = Mode.DRAG;
+                    self.setDirty();
+                }
+                self.preSelectedPoint = null;
+            }, 2000);
+        }
+    }
+    
+    this.onMouseUp = function(point) {
+        this.loseFocus();
+    }
+    
+    this.onClick = function(point) {
+        console.log("On Click called! We are " + this.parentCanvas.DOMCanvas.id[0]);
+    }
+    
+    this.onDoubleClick = function(point) {
+        this.preSelectedPoint = null;
+        var hitPoint = this.hitTest(point, this.pointSize);
+        if (hitPoint != null) {
+            this.selectedPoint = hitPoint;
+            gEditPoint = hitPoint;
+            $("#pointType").val(hitPoint.point.type);
+            $("#lingerTime").val(hitPoint.point.lingerTime);
+            $("#transitTime").val(hitPoint.point.transitTime);
+            var flameEffectName = hitPoint.point.flameEffect;
+            if (flameEffectName == null) {
+                flameEffectName = "None";
+            }
+            $("#flameEffect").val(flameEffectName); // XXX check existence
+            if (hitPoint.point.type == "linger") {
+                $("#linger").show();
+            } else {
+                $("#linger").hide();
+            }
+            $("#editPoint").dialog("open");
+            
+            // edit point - type, variables, flaming, etc
+            // also - delete point. Save changes, cancel, and delete are our options
+        } else {
+            console.log("Want to add new trigger point");
+
+            var newPoint = {"x":0.5, "y":0.5, "z":0.5, "type":"passthrough","lingerTime":0, "transitTime":0, "flameEffect":null};
+            newPoint[this.coordinate] = point.y/this.scaleFactor;
+            // point.x is time. Need to figure out what that means about transit time from previous
+            var timeOfNewPoint = point.x/gTimescale; 
+            var newTriggerPoint = new TriggerPoint(newPoint, timeOfNewPoint);
+            var triggerData = getTriggerData();  // external representation...
+            var triggerDataInternal = gTriggerLineSet[0]; // XXX abomination. Internal representation
+            var prevPoint = null;
+            var nextPoint = null;
+            var i = 0;
+            for (i=0; i<triggerDataInternal.points.length; i++) {
+                var curPoint = triggerDataInternal.points[i];
+                if (curPoint.t > timeOfNewPoint) {
+                    nextPoint = curPoint;
+                    break;
+                }
+                prevPoint = curPoint;
+            }
+            
+            /*
+            // fix up transit time for new point
+            if (prevPoint != null) {
+                newPoint.transitTime = timeOfNewPoint - prevPoint.t;
+                if (prevPoint.point.type == "linger"){
+                    newPoint.transitTime -= prevPoint.point.lingerTime;
+                }
+            }
+            // fix up transit time for next point
+            if (nextPoint != null) {
+                nextPoint.point.transitTime = nextPoint.t - timeOfNewPoint;
+            }
+            */
+            triggerDataInternal.points.splice(i, 0, newTriggerPoint);
+            triggerData.points.splice(i,0,newPoint);
+            resyncPoints();
+            redrawAll();
+        }
+    }
+
+    this.onMouseMove = function(point) {
+        if (this.mode == Mode.DRAG) {
+            var selectedPointIdx = this.points.indexOf(this.selectedPoint);
+            var minT = 0;
+            var maxT = this.parentCanvas.width()/gTimescale;
+            
+            if (selectedPointIdx > 0) {
+                var prevPoint = this.points[selectedPointIdx - 1]
+                minT = prevPoint.t + 0.02;
+                if (prevPoint.point.type == "linger") {
+                    minT += prevPoint.point.lingerTime;
+                }
+            }
+            if (selectedPointIdx < this.points.length - 1) {
+                maxT = this.points[selectedPointIdx + 1].t - 0.02;
+            }
+            this.selectedPoint.t                      = (point.x - this.offset.x)/gTimescale;
+            this.selectedPoint.point[this.coordinate] = (point.y - this.offset.y)/this.scaleFactor;
+            
+            this.selectedPoint.t = Math.min(this.selectedPoint.t, maxT);
+            this.selectedPoint.t = Math.max(this.selectedPoint.t, minT);
+            redrawAll();
+        }
+    }
+
+    this.sortPoints = function() {
+        this.points.sort(function(a,b) { 
+            return a.t - b.t;
+        });
+    }
+    
+    this.onMouseLeave = function() {
+        this.loseFocus();
+    }
+ 
+    this.loseFocus = function() {
+        if (this.selectedPoint != null) {
+            this.setDirty();
+        }
+        this.selectedPoint = null;
+        this.preSelectedPoint = null;
+        if (this.mode == Mode.DRAG) {
+            resyncPoints();
+        }
+        this.mode = Mode.NORMAL;
+    }   
+    
+    this.hitTest = function(point, radius) {
+        var x = point.x;
+        var y = point.y;
+        var nPoints = this.points.length;
+        var foundPoint = null;
+        var r2 = radius^2;
+        for (var i=0; i<nPoints; i++) {
+            var curPoint = this.points[i];
+            if (Math.pow(point.x - curPoint.t*gTimescale, 2) + Math.pow(point.y - curPoint.point[this.coordinate]*this.scaleFactor, 2) <= Math.pow(radius,2)) {
+                foundPoint = curPoint;
+                break;
+            }
+        }
+        return foundPoint;
+    }
+    
+    this.setDirty = function() {
+        this.parentCanvas.setDirty();
+    }
+        
+    this.render = function(drawingCtx, offset) {
+        var nPoints = this.points.length;
+        if (nPoints == 0) {
+            return;
+        }
+        
+
+        // draw envelope first...
+        var firstPoint = this.points[0];
+        
+        drawingCtx.lineWidth = this.movementDelta*this.scaleFactor*2; // XXX and then something else?
+        
+        var firstPoint = this.points[0];
+        drawingCtx.strokeStyle = 'rgba(100, 100, 255, 0.2)';
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(firstPoint.t*gTimescale + offset.x, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
+        if (firstPoint.point.type == "linger" && firstPoint.point.lingerTime > 0){
+            drawingCtx.lineTo(firstPoint.t*gTimescale + offset.x + firstPoint.point.lingerTime*gTimescale, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
+        }        
+        for (var i=1; i<nPoints; i++) {
+            var point = this.points[i];
+            drawingCtx.lineTo(point.t*gTimescale + offset.x, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
+            if (point.point.type == "linger" && point.point.lingerTime > 0){
+                drawingCtx.lineTo(point.t*gTimescale + offset.x + point.point.lingerTime*gTimescale, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
+            }
+        }
+        drawingCtx.stroke();
+
+/*
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(firstPoint.t + offset.x, (firstPoint.point[this.coordinate]  - this.movementDelta)*this.scaleFactor + offset.y);
+        for (var i=1; i<nPoints; i++) {
+            drawingCtx.lineTo(this.points[i].t + offset.x, (this.points[i].point[this.coordinate] - this.movementDelta)*this.scaleFactor + offset.y);
+        }
+        for (var i=nPoints-1; i >= 0; i--) {
+            drawingCtx.lineTo(this.points[i].t + offset.x, (this.points[i].point[this.coordinate] + this.movementDelta)*this.scaleFactor + offset.y );
+        }
+        drawingCtx.closePath();
+        drawingCtx.fillStyle = 'rgba(100, 100, 255, 0.2)'; //this.envelopeColor;
+        drawingCtx.fill();
+        */
+        
+        // draw lines next
+        //var firstPoint = this.points[0];
+        drawingCtx.lineWidth = this.strokeWidth;
+        drawingCtx.strokeStyle = this.color;
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(firstPoint.t*gTimescale + offset.x, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
+        if (firstPoint.point.type == "linger" && firstPoint.point.lingerTime > 0){
+            drawingCtx.lineTo(firstPoint.t*gTimescale + offset.x + firstPoint.point.lingerTime*gTimescale, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
+        }        
+        
+        for (var i=1; i<nPoints; i++) {
+            var point = this.points[i];
+            drawingCtx.lineTo(point.t*gTimescale + offset.x, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
+            if (point.point.type == "linger" && point.point.lingerTime > 0){
+                drawingCtx.lineTo(point.t*gTimescale + offset.x + point.point.lingerTime*gTimescale, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
+            }
+        }
+        drawingCtx.stroke();
+        
+        // draw points on top of lines
+        for (var i=0; i<nPoints; i++) {
+            var point = this.points[i];
+            drawingCtx.beginPath();
+            drawingCtx.moveTo(point.t*gTimescale - this.pointSize/2 + offset.x, 
+                              (point.point[this.coordinate] + offset.y)*this.scaleFactor - this.pointSize/2);
+            drawingCtx.lineTo(point.t*gTimescale + this.pointSize/2 + offset.x, 
+                              (point.point[this.coordinate] + offset.y)*this.scaleFactor - this.pointSize/2);
+            drawingCtx.lineTo(point.t*gTimescale + this.pointSize/2 + offset.x, 
+                              (point.point[this.coordinate] + offset.y)*this.scaleFactor + this.pointSize/2);
+            drawingCtx.lineTo(point.t*gTimescale - this.pointSize/2 + offset.x, 
+                              (point.point[this.coordinate] + offset.y)*this.scaleFactor + this.pointSize/2);
+            drawingCtx.closePath();
+            if (point == this.selectedPoint) {
+                drawingCtx.strokeStyle = this.selectedColor;
+            } else {
+                if (point.point.flameEffect != null) { 
+                    drawingCtx.strokeStyle = this.flamingPointColor;
+                } else {
+                    drawingCtx.strokeStyle = this.pointColor;
+                }
+            }
+            drawingCtx.stroke()
+        }
+    }
+}
+
+// are trigger points drawing elements? Probably. But static sets are not? 
+     
+function saveTrigger() {
+    var triggerData = getTriggerData();
+    triggerData.enabled = $("#triggerEnabled")[0].checked;
+    console.log("Trigger data is " + JSON.stringify(triggerData));
+    $.ajax({
+        type: 'POST',
+        url: "/flame/triggers",  
+        data: {"triggerData" : encodeURIComponent(JSON.stringify(triggerData))},
+        success: function(data, status, req) {
+            console.log("Successful save")
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error getting trigger data");
+        }
+    });    
+}
+gDistance = 0.2;
+
+function loadRecordingData(data) {
+    gReferencePoints.splice(0, gReferencePoints.length)
+    for (var i=0; i<data.length; i++) {
+        var inc = data[i];
+        var point = new Point(inc.x, inc.y, inc.z, i*gDistance);
+        gReferencePoints.push(point);
+        gReferencePoints.sort(function(a,b) { return a.t-b.t });
+    }
+    redrawAll();
+}
+
+function selectRecording(recordingName) {
+    // make sure name matches....
+    console.log("Looking for " + recordingName + " have " + $('#recordingNames').val());
+    if ($('#recordingNames').val() != recordingName) {
+        $('#recordingNames option[value=val2]').attr('selected','selected');
+        if ($('#recordingNames').val() != recordingName) {
+            console.log("No such recording");
+            return;
+        }
+    }
+    $.ajax({
+        type: 'GET',
+        url: "/hydraulics/playbacks/" + recordingName , 
+        success: function(data, status, req) {
+            console.log("Successfully grabbed data for recording name " + recordingName);
+            data = JSON.parse(data)
+            loadRecordingData(data);
+        },
+        error: function(req,status,errorThrown) {
+            console.log("error loading recording");
+        }
+    });
+}
+
+function loadRecordingList() {
+    $.ajax({
+        type: 'GET',
+        url: "/hydraulics/playbacks" , 
+        success: function(data, status, req) {
+            console.log("Successfully grabbed recording names");
+            $('#recordingNames').find('option').remove();
+            data = JSON.parse(data); // XXX - ideally, should be responding with mime type application/json, but don't want to fuck up other shit by changing it now
+            for (var i=0; i<data.length; i++) {
+                var optionText = '<option value="' + data[i] + '">' + data[i] + '</option>'
+                $('#recordingNames').append(optionText);
+            }
+//            selectRecording(data[0]);
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error loading recording list");
+        }
+    });
+}
+
+function loadFlameEffectsList() {
+    $.ajax({
+        type: 'GET',
+        url: "/flame/patterns" , 
+        success: function(data, status, req) {
+            console.log("Successfully grabbed flame effects names");
+            $('#flameEffect').find('option').remove();
+            $('#flameEffect').append('<option value="None">None</option>');
+            for (var i=0; i<data.length; i++) {
+                var optionText = '<option value="' + data[i]["name"] + '">' + data[i]["name"] + '</option>'
+                $('#flameEffect').append(optionText);
+            }
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error loading recording list");
+        }
+    });
+}
+
+function renameTrigger(oldName, newName) {
+    $.ajax({
+        type: 'POST',
+        url: "/flame/triggers/" + oldName, 
+        data: {"newName":newName},
+        success: function(data, status, req) {
+           console.log("Successfully renamed trigger " + triggerName);
+           loadTriggers();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error renaming trigger");
+        }
+    });
+}
+
+function deleteTrigger(triggerName) {
+    $.ajax({
+        type: 'DELETE',
+        url: "/flame/triggers/" + triggerName, 
+        success: function(data, status, req) {
+           console.log("Successfully deleted trigger " + triggerName);
+           loadTriggers();
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error deleting trigger");
+        }
+    });
+}
+
+function createNewTrigger(name) {
+    // add to gTriggers
+    var newTrigger = {"name":name, "active":true, "points":[]};
+    gTriggers.push(newTrigger);
+    
+    // add to select drop down
+    var optionText = '<option value="' + name + '">' + name + '</option>'
+    $('#triggerName').append(optionText);
+}
+
+function loadTriggers() {
+    $.ajax({
+        type: 'GET',
+        url: "/flame/triggers",  
+
+        success: function(data, status, req) {
+            gTriggers = data
+            $('#triggerName').find('option').remove()
+            for (var i=0; i<gTriggers.length; i++) {
+                var optionText = '<option value="' + gTriggers[i].name + '">' + gTriggers[i].name + '</option>'
+                $('#triggerName').append(optionText);
+            }
+            viewTrigger($('#triggerName').val());
+        },
+        error: function(req,status,errorThrown) {
+            console.log("Error getting trigger data");
+        }
+    });
+}
+
+  
+
+
+</script>
+    
+        
+

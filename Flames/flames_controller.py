@@ -48,7 +48,6 @@ def shutdown():
 
 
 def doFlameEffect(flameEffectName):
-    logger.debug("Doing flame effect {}".format(flameEffectName))
     if not flameEffectName in disabledFlameEffects:
         flameEffectMsg = {"cmdType":"flameEffectStart", "name":flameEffectName}
         cmdQueue.put(json.dumps(flameEffectMsg))
@@ -60,15 +59,11 @@ def stopFlameEffect(flameEffectName):
 def disableFlameEffect(flameEffectName):
     if not flameEffectName in disabledFlameEffects:
         disabledFlameEffects.append(flameEffectName)
-    else:
-        logger.debug("Disable called twice on {}".format(flameEffectName))
     stopFlameEffect(flameEffectName)
 
 def enableFlameEffect(flameEffectName):
     if flameEffectName in disabledFlameEffects:
         disabledFlameEffects.remove(flameEffectName)
-    else:
-        logger.debug("Enable called twice on {}".format(flameEffectName))
 
 def isFlameEffectActive(flameEffectName):
     return flameEffectName in activeFlameEffects
@@ -126,11 +121,9 @@ def eventHandler(msg):
     id = msg["id"]
     if (msgType == "poofer_on"):
         if not id in activePoofers:
-            logger.debug("Turned Poofer {} on".format(id))
             activePoofers.append(id)
     elif (msgType == "poofer_off"):
         try:
-            logger.debug("Turned Poofer {} off".format(id))
             activePoofers.remove(id)
         except:
             pass

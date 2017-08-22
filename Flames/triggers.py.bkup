@@ -28,22 +28,18 @@ import flames_controller
 triggerList = list()
 triggerThread = None
 triggerFileName = None
-envelopeRadius = 0.2
 
 logger = logging.getLogger('triggers')
 
 
-def init(triggerFile, addr, port, sensitivity=0.2):
+def init(triggerFile, addr, port):
     global triggerThread
     global triggerFileName
-    global envelopeRadius
-
-    logger.info("Trigger Init, trigger file {}, listening at {}:{}, sensitivity {}".format(triggerFile, addr, port, sensitivity))
-    envelopeRadius = sensitivity
-
+    logger.info("Trigger Init, trigger file {}, listening at {}:{}".format(triggerFile, addr, port))
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f)
+        logger.debug("triggerparams are {}".format(triggerParams))
         triggerFileName = triggerFile
         triggerThread = TriggerManager(addr, port, triggerParams)
         triggerThread.start()
@@ -67,21 +63,23 @@ def getTriggers():
                       "active": trigger.isActive(), "points":trigger.getPoints()}
         newTriggers.append(newTrigger)
     return newTriggers
-
+    
 def deleteTrigger(triggerName):
     triggerThread.deleteTrigger(triggerName)
-
+    
 def addOrModifyTrigger(trigger):
     triggerThread.addOrModifyTrigger(trigger)
-
+    
 def renameTrigger(oldName, newName):
     triggerThread.renameTrigger(oldName, newName)
-
+    
 def saveTriggers(triggerFile=None):
+    print("SAVING")
     triggerThread.saveTriggers(triggerFile)
 
 
 def enableTrigger(triggerName):
+    logger.debug("Enabling trigger {}".format(triggerName))
     triggers = triggerThread.getTriggers()
     for trigger in triggers:
         if trigger.getName() == triggerName:
@@ -89,6 +87,7 @@ def enableTrigger(triggerName):
             break
 
 def disableTrigger(triggerName):
+    logger.debug("Disabling trigger {}".format(triggerName))
     triggers = triggerThread.getTriggers()
     for trigger in triggers:
         if trigger.getName() == triggerName:
@@ -131,8 +130,12 @@ class TriggerManager(Thread):
         self.socketInit = False
         self.hydraulics_socket = None
 
+        logger.debug("trigger manager init, trigger params:".format(triggerParams))
+
         for triggerParamsObject in triggerParams:
+            logger.debug("trigger param is {}".format(triggerParamsObject))
             if _verifyTriggerParamsObject(triggerParamsObject):
+                logger.debug("trigger verifies, creating object and appending to list")
                 triggerObject = TriggerObject(triggerParamsObject["name"],
                                               triggerParamsObject["points"])
                 self.triggerList.append(triggerObject)
@@ -141,51 +144,55 @@ class TriggerManager(Thread):
 # x = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values())) # XXX this is a way of creating an object with attributes instead of a generic dict, but I don't quite understand how it works yet
     def getTriggers(self):
         return self.triggerList
-
+        
     def deleteTrigger(self, triggerName):
         for trigger in self.triggerList:
             if trigger.getName() == triggerName:
+                logger.debug("Removing trigger {}".format(triggerName))
                 self.triggerList.remove(trigger)
                 break
-
+ 
     def renameTrigger(self, oldName, newName):
         for trigger in self.triggerList:
-            if trigger.getName() == oldName:
-                trigger.setName(newName)
-
+            if trigger.getName() == oldName:   
+                trigger.setName(newName)     
+                
     def addOrModifyTrigger(self, trigger):
         if not _verifyTriggerParamsObject(trigger):
             logger.warning("New trigger does not validate")
             return
-
+            
         foundTrigger = None
         for curTrigger in self.triggerList:
             if curTrigger.name == trigger["name"]:
                 foundTrigger = curTrigger
+                logger.debug("Modifying trigger")
                 break
-
+        
         if foundTrigger:
-#            enabled = foundTrigger.isEnabled()
+            enabled = foundTrigger.isEnabled()
             self.triggerList.remove(foundTrigger)
         else:
-            enabled = True
-
+            logger.debug("Adding trigger")
+            enabled = True     
+        
         triggerObject = TriggerObject(trigger["name"],
                                       trigger["points"])
         self.triggerList.append(triggerObject)
-        triggerObject.enable(trigger["enabled"])
-
+        triggerObject.enable(enabled)
+        
     def saveTriggers(self, filename=None):
+        logger.debug("Saving triggers");
         newList = []
         for trigger in self.triggerList:
             newTrigger = {"name":trigger.name, "points":trigger.points}
             newList.append(newTrigger)
-
+        
         if filename == None:
             filename = triggerFileName
         with open(filename, 'w') as f: # open write
             json.dump(newList, f)
-
+    
 
     def run(self):
         self.running = True
@@ -215,6 +222,7 @@ class TriggerManager(Thread):
                 while (eomIdx >= 0) :
                     cmd = msg[:eomIdx]
                     cmdObj = json.loads(cmd)
+                    print "**triggers - cmd is {}".format(cmd)
                     # got message, hand to objects
                     for trigger in self.triggerList:
                         trigger.processSculpturePosition(cmdObj)
@@ -259,6 +267,7 @@ LINGERING = "lingering" # waiting a while at a particular point
 LOOKING = "looking"     # looking for a particular point
 
 
+ENVELOPE_SIZE = 5
 
 # XXX let's not bother with direction down the envelope right now. Just keep us in the envelope
 # XXX - want a way to disable these guys!
@@ -289,10 +298,10 @@ class TriggerObject():
 
     def getName(self):
         return self.name
-
+    
     def setName(self, newName):
         self.name = newName;
-
+        
     def getPoints(self):
         return self.points
 
@@ -303,27 +312,28 @@ class TriggerObject():
         return (not self.inRecovery) and ((self.state == LINGERING) or (self.state == LOOKING and self.pointTarget > 0))
 
     def _restartTrigger(self, bRecover = False):
+        print "*** restart trigger***"
         self.pointTarget = 0
         self.state = LOOKING
         self.lastTriggerPointTime = 0
         self.lingerTime = 0
         if bRecover:
-            logger.info("Starting recovery for trigger {}".format(self.name))
             self.inRecovery = True
             self.recoveryStartTime = time.time()
 
     def processSculpturePosition(self, position):
 #        print "Received position, ", position
+        print "State is ", self.state
         if self.state == DISABLED:
             return
 
         currentTime = time.time()
-        if self.inRecovery:
-            if currentTime > self.recoveryStartTime + self.recoveryTime:
-                self.inRecovery = False
-            else:
-                return # we're in the recovery period. Bail.
-
+        if self.inRecovery and currentTime > self.recoveryStartTime + self.recoveryTime:
+            self.inRecovery = False
+        else:
+            print "**RECOvery**" 
+            return # we're in the recovery period. Bail.
+            
         targetPoint = self.points[self.pointTarget]
 
         if self.state == LINGERING:
@@ -335,10 +345,12 @@ class TriggerObject():
                     logger.info("Flame effect sequence {} called!".format(self.points[self.pointTarget]["flameEffect"]))
 
                 if (len(self.points) > (self.pointTarget+1)):  # go to next point in sequence
+                    logger.debug("Trigger {} going to next point ({})".format(self.name, self.pointTarget+1))
                     self.pointTarget = self.pointTarget + 1
                     self.state = LOOKING
                     self.lastTriggerPointTime = currentTime
                 else: # end of trigger sequence. Back to the looking for the first point
+                    logger.debug("End of trigger {}".format(self.name))
                     self._restartTrigger(True)
                     return
             else:
@@ -346,55 +358,40 @@ class TriggerObject():
 
 
         elif self.state == LOOKING:
-          # Check whether time has expired
+            # Check whether time has expired
             if self.pointTarget != 0 and (currentTime > (self.lastTriggerPointTime + targetPoint["transitTime"])):
                 logger.debug("Restarting trigger {}".format(self.name))
-                self._restartTrigger(True)
+                self._restartTrigger()
                 return
 
-            print "TRIGGER - looking for point {}, have {}".format(targetPoint,position)
             # now check if we've gotten to the desired point
             if TriggerObject._inEnvelopeRadius(targetPoint, position):
                 # got there. Change state...
                 if targetPoint["type"] == "linger":
+                    logger.debug("Trigger {} got to point ({}). Will linger".format(self.name, self.pointTarget))
                     self.state = LINGERING
                     self.lingerTime = currentTime + targetPoint["lingerTime"]
                 else: # passthrough case
-                    if "flameEffect" in targetPoint and targetPoint["flameEffect"] != None:
+                    if "flameEffect" in targetPoint:
                         logger.info("Trigger {} calling for flame effect {}".format(self.name, targetPoint["flameEffect"]))
                         flames_controller.doFlameEffect(targetPoint["flameEffect"])
                     self.state = LOOKING
                     self.pointTarget = self.pointTarget + 1
                     if self.pointTarget >= len(self.points):
-                        self._restartTrigger(True)
+                        self.pointTarget = 0
 
             # haven't gotten to desired point - are we in the envelope?
             elif self.pointTarget != 0:  # target 0 has no transition envelope, since there was no previous point
                 prevPoint = self.points[self.pointTarget-1]
                 if not TriggerObject._inEnvelopeSausage(prevPoint, targetPoint, position):
-                    self._restartTrigger(True)
+                    self._restartTrigger()
                     return
 
 
     @staticmethod
     def _inEnvelopeRadius(target, testPoint):
-        if (target["x"] == "any"):
-            dx = 0.15
-        else:
-            dx = target["x"] - testPoint["x"]
-
-        if (target["y"] == "any"):
-            dy = 0.15
-        else:
-            dy = target["y"] - testPoint["y"]
-
-        if (target["z"] == "any") :
-            dz = 0.15
-        else:
-            dz = target["z"] - testPoint["z"]
-
-        distanceSquare = (dx)**2 + (dy)**2 + (dz)**2
-        return distanceSquare <= envelopeRadius
+        distanceSquare = (target["x"] - testPoint["x"])**2 + (target["y"] - testPoint["y"])**2 + (target["z"] - testPoint["z"])**2
+        return distanceSquare <= ENVELOPE_SIZE**2
 
     @staticmethod
     def _inEnvelopeSausage(targetA, targetB, testPoint):
@@ -403,46 +400,19 @@ class TriggerObject():
         if TriggerObject._inEnvelopeRadius(targetB, testPoint):
             return True
 
-        return TriggerObject._distanceToLineSegment(targetA, targetB, testPoint) <= envelopeRadius**2
+        return TriggerObject._distanceToLineSegment(targetA, targetB, testPoint) <= ENVELOPE_SIZE**2
 
     @staticmethod
     def _distanceToLineSegment(targetA, targetB, testPoint):
-        if (targetB["x"] == "any" or targetA["x"] == 'any'):
-            dx = 0
-        else:
-            dx = targetB["x"] - targetA["x"]
 
-        if (targetB["y"] == "any" or targetA["y"] == 'any'):
-            dy = 0
-        else:
-            dy = targetB["y"] - targetA["y"]
-
-        if (targetB["z"] == "any" or targetA["z"] == 'any'):
-            dz = 0
-        else:
-            dz = targetB["z"] - targetA["z"]
+        dx = targetB["x"] - targetA["x"]
+        dy = targetB["y"] - targetA["y"]
+        dz = targetB["z"] - targetA["z"]
 
         d2 = dx**2 + dy**2 + dz**2 # square of line segment length
 
-
         # u is projection of testpoint's fraction of way along the line segment
-        if targetA["x"] == "any":
-            ux = 0
-        else:
-            ux = (testPoint["x"] - targetA["x"])*dx
-
-        if (targetA["y"] == "any"):
-            uy = 0
-        else:
-            uy = (testPoint["y"] - targetA["y"])*dy
-
-        if targetA["z"] == "any":
-            uz = 0
-        else:
-            uz = (testPoint["z"] - targetA["z"])*dz
-
-
-        u = (ux*dx + uy*dy + uz*dz) / float(d2)
+        u = ((testPoint["x"] - targetA["x"])*dx + (testPoint["y"] - targetA["y"])*dy + (testPoint["z"] - targetA["z"])*dz) / float(d2)
 
         # clamp u - because we want an answer inside the line segment.
         if u > 1:
@@ -450,22 +420,11 @@ class TriggerObject():
         elif u < 0:
             u = 0
 
-        if (targetA["x"] == "any"):
-            ddx = 0
-        else:
-            ddx = (targetA["x"] + u * dx) - testPoint["x"]
+        x = targetA["x"] + u * dx
+        y = targetA["y"] + u * dy
+        z = targetA["z"] + u * dz
 
-        if (targetA["y"] == "any"):
-            ddy = 0
-        else:
-            ddy = (targetA["y"] + u * dy) - testPoint["y"]
-
-        if (targetA["z"] == "any"):
-            ddz = 0
-        else:
-            ddz = (targetA["z"] + u * dz) - testPoint["z"]
-
-        return (ddx)**2 + (ddy)**2 + (ddz)**2
+        return (x - testPoint["x"])**2 + (y - testPoint["y"])**2 + (z - testPoint["z"])**2
 
 theTriggerTest = None
 def triggerTestEventListenerWrapper(msg):

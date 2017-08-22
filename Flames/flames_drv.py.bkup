@@ -79,9 +79,9 @@ BAUDRATE                            = 19200
 
 pooferFiringThread = None
 
-def init(cmdQueue, homeDir):
+def init(cmdQueue):
     global pooferFiringThread
-    pooferFiringThread = PooferFiringThread(cmdQueue, homeDir)
+    pooferFiringThread = PooferFiringThread(cmdQueue)
     pooferFiringThread.start()
 
 def shutdown():
@@ -93,28 +93,22 @@ def shutdown():
         pooferFiringThread.join()
         pooferFiringThread = None
 
-
 class PooferFiringThread(Thread): # comment out for unit testing
 # class PooferFiringThread():
     TIMEOUT = 1 # 1 second timeout, even if no events
 
-    # NB - there ought to be a global configuration manager rather than having to pass around
-    # the home directory and handling configuration files per module, but I don't have time to do that
-    def __init__(self, cmdQueue, homeDir):
+    def __init__(self, cmdQueue):
         Thread.__init__(self) # comment out for unit testing
         logger.info("Init Poofer Firing Thread")
         self.cmdQueue = cmdQueue
         self.running = False
         self.isFiringDisabled = False
         self.pooferEvents = list() # time-ordered list of poofer events
-#        self.disabled_poofers = set()
-        self.disabled_poofers = [] # NB - set() is a better construct, but I need to load from a json file. Without internet access, the only way I know to quickly do that is to use a list
+        self.disabled_poofers = set()
         self.initSerial()
-        self.disabledFile = homeDir + "disabled_poofers.json"
         # with open(pooferMappingPath) as data_file:
         #     self.pooferMapping = json.load(data_file)
         self.disableAllPoofersCommand = self.generateDisableAllString()
-        self.readDisabledPoofers()
 
 
     def shutdown(self):
@@ -166,7 +160,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 currentTime = time.time()
                 firingTime = event["time"]
                 if firingTime < currentTime:
-                    if not currentTime - firingTime > 2: #If it's more than two seconds in the past, ignore it
+                    if not currentTime - firingTime > 2000: #If it's more than two seconds in the past, ignore it
                         self.firePoofers(event["bangCommandList"])
                 else:
                     self.pooferEvents.insert(0, event)
@@ -178,15 +172,15 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 waitTime = PooferFiringThread.TIMEOUT
 
             try:
-                if waitTime < 0:
-                    waitTime = 0  
                 cmd = self.cmdQueue.get(True, waitTime)
+                logger.debug("Received Message on cmd queue!")
                 # parse message. If this is a request to do a flame sequence,
                 # set up poofer events, ordered by time. Event["time"] attribute
                 # should be current time (time.time()) plus the relative time from
                 # the start of the sequence
                 msgObj = json.loads(cmd)
                 type = msgObj["cmdType"]
+                logger.debug("message is {}".format(msgObj))
                 if type == "stop":
                     self.stopAll()
 
@@ -226,7 +220,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
             totalDuration = 0
             for e in events:
                 totalDuration += e["duration"]
-            if totalDuration > 60:
+            if totalDuration > 60000:
                 raise Exception ("Error: duration", len(firingSequence))
 
             return True
@@ -239,6 +233,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
     def firePoofers(self, bangCommandList):
         try:
             if not self.running or self.isFiringDisabled:
+                logger.debug("Received bang command but self.running == %s  and self.isFiringDiabled == %s", str(self.running), str(self.isFiringDisabled))
                 return 1
 
             if not self.ser:
@@ -246,6 +241,7 @@ class PooferFiringThread(Thread): # comment out for unit testing
 
             for command in bangCommandList:
                 self.ser.write(command.encode())
+                logger.debug("Wrote this command to serial: %s", command)
 
         except Exception as e:
             self.ser.close()
@@ -253,37 +249,15 @@ class PooferFiringThread(Thread): # comment out for unit testing
             logger.exception("Error sending bangCommandSequence to poofer controller boards: %s", str(e))
 
     def disablePoofer(self, msgObj):
-        logger.info("Disabling poofer {}".format(msgObj["name"]))
-        if not msgObj["name"] in self.disabled_poofers:
-            self.disabled_poofers.append(msgObj["name"])
-            self.writeDisabledPoofers()
-            # XXX Rip this poofer out of the command  list
-            # XXX self.pooferEvents
-            event_manager.postEvent({"msgType":"poofer_disabled", "id":msgObj["name"]})
+        self.disabled_poofers.add(msgObj["name"])
+        event_manager.postEvent({"msgType":"poofer_disabled", "id":msgObj["name"]})
 
     def enablePoofer(self, msgObj):
         try:
-            logger.info("Disabling poofer {}".format(msgObj["name"]))
             self.disabled_poofers.remove(msgObj["name"])
-            self.writeDisabledPoofers()
             event_manager.postEvent({"msgType":"poofer_enabled", "id":msgObj["name"]})
         except KeyError as e:
             pass
-
-    def readDisabledPoofers(self):
-        try :
-            with open(self.disabledFile, 'r') as f:
-                self.disabled_poofers = json.load(f)
-
-        except Exception:
-            logger.exception("Trouble reading disabled poofers")
-
-    def writeDisabledPoofers(self):
-        try :
-            with open(self.disabledFile, 'w') as f: # open write
-                json.dump(self.disabled_poofers, f)
-        except Exception:
-            logger.exception("Trouble reading disabled poofers")
 
     def resumeAll(self):
         self.isFiringDisabled = False
@@ -338,13 +312,12 @@ class PooferFiringThread(Thread): # comment out for unit testing
                 startTime = firstFiringTime + event["startTime"]
                 endTime = startTime + event["duration"]
 
-                # CSW DO NOT ADD DISABLED POOFERS!!!
-                for poofer in self.disabled_poofers:
-                    if poofer in ids:
-                        ids.remove(poofer)
-
                 addresses = [pooferMapping[a] for a in ids]
                 bangCommandList = self.makeBangCommandList(addresses)
+
+		logger.debug("======= addresses = %s", str(addresses))
+		logger.debug("======= bangCommandList = %s", str(bangCommandList))
+		logger.debug("==== end time = %i", endTime)
 
                 pooferEvent = {}
                 pooferEvent["sequence"] = sequenceName

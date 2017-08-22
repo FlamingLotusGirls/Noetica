@@ -14,7 +14,8 @@ $(function ($) {
   var toggleStates = {
     'poofer-main': true,
     'hydraulics-main': true,
-    'hydraulics-attract': true
+    'hydraulics-attract': true,
+    'poofer-manual': false
   }
   var hydraulicsAttractModeActive = false
   var pooferSequenceModeActive = false
@@ -67,6 +68,13 @@ $(function ($) {
   }
   var updateToggleStates = function() {
     Object.keys(toggleStates).map(updateToggleState)
+  }
+  var updateManualToggleLabel = function() {
+    if (toggleStates['poofer-manual']) {
+      $('.poofer-control-mode-label').text('Manual')
+    } else {
+      $('.poofer-control-mode-label').text('Admin')
+    }
   }
   var updatePooferToggleButtonState = function() {
     var enabled = !selectedPoofer || selectedPoofer.enabled
@@ -221,6 +229,7 @@ $(function ($) {
     // when anything changes. Where possible, functions called from here should be
     // written to not force refreshes of state that didn't actually change.
     updateToggleStates()
+    updateManualToggleLabel()
     updateSelectedPooferDependentState()
     updateAllPoofersDisplayState()
     updateHydraulicsDisplayState()
@@ -268,7 +277,11 @@ $(function ($) {
     ;(function () {
       var tempName = name
       $currentPoofer.on('click', function () {
-        setSelectedPoofer(tempName)
+        if (toggleStates['poofer-manual'] === false) {
+          setSelectedPoofer(tempName)
+        } else {
+          postPooferActivate(tempName)
+        }
       })
     })()
   }
@@ -357,6 +370,18 @@ $(function ($) {
     } else {
       // just in case, make state consistent
       pooferSequenceModeActive = false
+    }
+  }
+  var postPooferActivate = function(name) {
+    if (name) {
+      name = name.toUpperCase()
+      $.post(flameUrl(`/patterns/${name}`), {
+        active: true
+      }).then(function() {
+        $.post(flameUrl(`/patterns/${name}`), {
+          active: false
+        })
+      })
     }
   }
   postHydraulicsRecordMode = function() {

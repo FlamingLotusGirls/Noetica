@@ -71,8 +71,7 @@ def _validatePattern(pattern):
         return False
 
     if not "modifiable" in pattern:
-        logger.warn("Pattern modifiable flag not set, defaulting to True")
-        pattern["modifiable"] = True
+        pattern["modifiable"] = False
 
     for event in pattern["events"]:
         if not "ids" in event:
@@ -162,7 +161,6 @@ def modifyPattern(newPattern):
         logger.warning("Pattern {} is not modifiable, will not modify".format(patternName))
     else:
         foundPattern["events"] = newPattern["events"]
-        
     patternLock.release()
 
 def deletePattern(patternName):
