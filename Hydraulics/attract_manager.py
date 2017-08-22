@@ -18,7 +18,7 @@ isRunning = True
 
 logger = logging.getLogger("hydraulics")
 
-def init(timeout = 30, delta=20, autoEnable=False):
+def init(timeout = 30, delta=200, autoEnable=False):
     global gAttractModeStartTime
     global gAttractMonitorThread
     
@@ -102,10 +102,10 @@ def autoAttractModeEnabled(tf=None):
     global gAutoAttractModeEnabled
     global gAttractModeStartTime
    
-    logger.debug("Attract mode enable called, tf is {}".format(tf)) 
     if tf == None:
         return gAutoAttractModeEnabled
     else:
+        logger.debug("Attract mode enable called, tf is {}".format(tf)) 
         gAutoAttractModeEnabled = (tf == True)
         if (gAutoAttractModeEnabled) :
             gAttractModeStartTime = time.time() + gAttractModeTimeout 	 
