@@ -28,14 +28,19 @@ import flames_controller
 triggerList = list()
 triggerThread = None
 triggerFileName = None
+envelopeRadius = 0.2
 
 logger = logging.getLogger('triggers')
 
 
-def init(triggerFile, addr, port):
+def init(triggerFile, addr, port, sensitivity=0.2):
     global triggerThread
     global triggerFileName
-    logger.info("Trigger Init, trigger file {}, listening at {}:{}".format(triggerFile, addr, port))
+    global envelopeRadius
+
+    logger.info("Trigger Init, trigger file {}, listening at {}:{}, sensitivity {}".format(triggerFile, addr, port, sensitivity))
+    envelopeRadius = sensitivity
+
     try:
         with open(triggerFile) as f:
             triggerParams = json.load(f)
@@ -74,7 +79,6 @@ def renameTrigger(oldName, newName):
     triggerThread.renameTrigger(oldName, newName)
     
 def saveTriggers(triggerFile=None):
-    print("SAVING")
     triggerThread.saveTriggers(triggerFile)
 
 
@@ -170,7 +174,7 @@ class TriggerManager(Thread):
                 break
         
         if foundTrigger:
-            enabled = foundTrigger.isEnabled()
+#            enabled = foundTrigger.isEnabled()
             self.triggerList.remove(foundTrigger)
         else:
             logger.debug("Adding trigger")
@@ -179,13 +183,12 @@ class TriggerManager(Thread):
         triggerObject = TriggerObject(trigger["name"],
                                       trigger["points"])
         self.triggerList.append(triggerObject)
-        triggerObject.enable(enabled)
+        triggerObject.enable(trigger["enabled"])
         
     def saveTriggers(self, filename=None):
         logger.debug("Saving triggers");
         newList = []
         for trigger in self.triggerList:
-            print ("***Trigger is {}".format(trigger))
             newTrigger = {"name":trigger.name, "points":trigger.points}
             newList.append(newTrigger)
         
@@ -267,7 +270,6 @@ LINGERING = "lingering" # waiting a while at a particular point
 LOOKING = "looking"     # looking for a particular point
 
 
-ENVELOPE_SIZE = 5
 
 # XXX let's not bother with direction down the envelope right now. Just keep us in the envelope
 # XXX - want a way to disable these guys!
@@ -317,20 +319,21 @@ class TriggerObject():
         self.lastTriggerPointTime = 0
         self.lingerTime = 0
         if bRecover:
+            logger.info("Starting recovery for trigger {}".format(self.name))
             self.inRecovery = True
             self.recoveryStartTime = time.time()
 
     def processSculpturePosition(self, position):
 #        print "Received position, ", position
-#        print "State is ", self.state
         if self.state == DISABLED:
             return
 
         currentTime = time.time()
-        if self.inRecovery and currentTime > self.recoveryStartTime + self.recoveryTime:
-            self.inRecovery = False
-        else: 
-            return # we're in the recovery period. Bail.
+        if self.inRecovery:
+            if currentTime > self.recoveryStartTime + self.recoveryTime:
+                self.inRecovery = False
+            else:
+                return # we're in the recovery period. Bail.
             
         targetPoint = self.points[self.pointTarget]
 
@@ -356,12 +359,13 @@ class TriggerObject():
 
 
         elif self.state == LOOKING:
-            # Check whether time has expired
+          # Check whether time has expired
             if self.pointTarget != 0 and (currentTime > (self.lastTriggerPointTime + targetPoint["transitTime"])):
                 logger.debug("Restarting trigger {}".format(self.name))
-                self._restartTrigger()
+                self._restartTrigger(True)
                 return
 
+            print "TRIGGER - looking for point {}, have {}".format(targetPoint,position)
             # now check if we've gotten to the desired point
             if TriggerObject._inEnvelopeRadius(targetPoint, position):
                 # got there. Change state...
@@ -370,26 +374,42 @@ class TriggerObject():
                     self.state = LINGERING
                     self.lingerTime = currentTime + targetPoint["lingerTime"]
                 else: # passthrough case
-                    if "flameEffect" in targetPoint:
+                    if "flameEffect" in targetPoint and targetPoint["flameEffect"] != None:
                         logger.info("Trigger {} calling for flame effect {}".format(self.name, targetPoint["flameEffect"]))
                         flames_controller.doFlameEffect(targetPoint["flameEffect"])
                     self.state = LOOKING
                     self.pointTarget = self.pointTarget + 1
                     if self.pointTarget >= len(self.points):
-                        self.pointTarget = 0
+                        self._restartTrigger(True) 
 
             # haven't gotten to desired point - are we in the envelope?
             elif self.pointTarget != 0:  # target 0 has no transition envelope, since there was no previous point
                 prevPoint = self.points[self.pointTarget-1]
                 if not TriggerObject._inEnvelopeSausage(prevPoint, targetPoint, position):
-                    self._restartTrigger()
+                    self._restartTrigger(True)
                     return
 
 
     @staticmethod
     def _inEnvelopeRadius(target, testPoint):
-        distanceSquare = (target["x"] - testPoint["x"])**2 + (target["y"] - testPoint["y"])**2 + (target["z"] - testPoint["z"])**2
-        return distanceSquare <= ENVELOPE_SIZE**2
+        if (target["x"] == "any"):
+            dx = 0
+        else:
+            dx = target["x"] - testPoint["x"]
+        
+        if (target["y"] == "any"):
+            dy = 0
+        else:
+            dy = target["y"] - testPoint["y"]
+
+        if (target["z"] == "any") :
+            dz = 0
+        else:
+            dz = target["z"] - testPoint["z"]
+        
+        distanceSquare = (dx)**2 + (dy)**2 + (dz)**2
+        return distanceSquare <= envelopeRadius**2
+
 
     @staticmethod
     def _inEnvelopeSausage(targetA, targetB, testPoint):
@@ -398,19 +418,46 @@ class TriggerObject():
         if TriggerObject._inEnvelopeRadius(targetB, testPoint):
             return True
 
-        return TriggerObject._distanceToLineSegment(targetA, targetB, testPoint) <= ENVELOPE_SIZE**2
+        return TriggerObject._distanceToLineSegment(targetA, targetB, testPoint) <= envelopeRadius**2
 
     @staticmethod
     def _distanceToLineSegment(targetA, targetB, testPoint):
+        if (targetB["x"] == "any" or targetA["x"] == 'any'):
+            dx = 0
+        else:
+            dx = targetB["x"] - targetA["x"]
 
-        dx = targetB["x"] - targetA["x"]
-        dy = targetB["y"] - targetA["y"]
-        dz = targetB["z"] - targetA["z"]
+        if (targetB["y"] == "any" or targetA["y"] == 'any'):
+            dy = 0
+        else:
+            dy = targetB["y"] - targetA["y"]
+
+        if (targetB["z"] == "any" or targetA["z"] == 'any'):
+            dz = 0
+        else:
+            dz = targetB["z"] - targetA["z"]
 
         d2 = dx**2 + dy**2 + dz**2 # square of line segment length
 
+
         # u is projection of testpoint's fraction of way along the line segment
-        u = ((testPoint["x"] - targetA["x"])*dx + (testPoint["y"] - targetA["y"])*dy + (testPoint["z"] - targetA["z"])*dz) / float(d2)
+        if targetA["x"] == "any":
+            ux = 0
+        else:
+            ux = (testPoint["x"] - targetA["x"])*dx 
+
+        if (targetA["y"] == "any"):
+            uy = 0
+        else:
+            uy = (testPoint["y"] - targetA["y"])*dy 
+
+        if targetA["z"] == "any":
+            uz = 0
+        else:
+            uz = (testPoint["z"] - targetA["z"])*dz 
+                
+                
+        u = (ux*dx + uy*dy + uz*dz) / float(d2)
 
         # clamp u - because we want an answer inside the line segment.
         if u > 1:
@@ -418,11 +465,22 @@ class TriggerObject():
         elif u < 0:
             u = 0
 
-        x = targetA["x"] + u * dx
-        y = targetA["y"] + u * dy
-        z = targetA["z"] + u * dz
+        if (targetA["x"] == "any"):
+            ddx = 0
+        else:
+            ddx = (targetA["x"] + u * dx) - testPoint["x"]
 
-        return (x - testPoint["x"])**2 + (y - testPoint["y"])**2 + (z - testPoint["z"])**2
+        if (targetA["y"] == "any"):
+            ddy = 0
+        else:
+            ddy = (targetA["y"] + u * dy) - testPoint["y"]
+     
+        if (targetA["z"] == "any"):
+            ddz = 0
+        else:
+            ddz = (targetA["z"] + u * dz) - testPoint["z"]
+
+        return (ddx)**2 + (ddy)**2 + (ddz)**2
 
 theTriggerTest = None
 def triggerTestEventListenerWrapper(msg):

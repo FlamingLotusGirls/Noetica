@@ -16,7 +16,7 @@
 <body>
     <div> 
     <h2> Noetica Trigger Editor </h2>
-    Trigger: &nbsp;<select id="triggerName"></select><br>
+    Trigger: &nbsp;<select id="triggerName"></select>&nbsp;&nbsp;Enabled<input type="checkbox" id="triggerEnabled"><br>
     Reference Recording: &nbsp; <select id="recordingNames"></select><br><br>
     </div>
     <div>
@@ -51,7 +51,10 @@
         <span id="linger"><br>Linger Time:&nbsp;<input id="lingerTime" type="numeric" value="2"></span>
         <br>Flame Effect&nbsp;<select id="flameEffect">
             <option value="None">None</option>
-        </select>    
+        </select>>
+        Allow Any X: <input type="checkbox" id="anyX"><br>
+        Allow Any Y: <input type="checkbox" id="anyY"><br>
+        Allow Any Z: <input type="checkbox" id="anyZ"><br>   
     </div>
     <div id="newTrigger" title="Name Trigger" style="display:none">
         Trigger Name: <input id="initialTriggerName" type="text" value="">
@@ -335,6 +338,7 @@ $(document).ready(function (){
     });
     
     cjq.mousedown(function(e) {
+        e.preventDefault(); 
         var point = this.relCoords(e);
         window["canvas" + this.id[0].toUpperCase()].onMouseDown(point);
     });
@@ -366,6 +370,24 @@ $(document).ready(function (){
                                         if (gEditPoint.point.flameEffect == "None") {
                                             gEditPoint.point.flameEffect = null;
                                         }
+                                        if ($("#anyX")[0].checked) {
+                                            gEditPoint.point.x = "any";
+                                        } else if (gEditPoint.point.x == "any") {
+                                            gEditPoint.point.x = "0.5"
+                                        }
+                    
+                                        if ($("#anyY")[0].checked) {
+                                            gEditPoint.point.y = "any";
+                                        } else if (gEditPoint.point.y == "any") {
+                                            gEditPoint.point.y = "0.5"
+                                        }
+
+                                        if ($("#anyZ")[0].checked) {
+                                            gEditPoint.point.z = "any";
+                                        } else if (gEditPoint.point.z == "any") {
+                                            gEditPoint.point.z = "0.5"
+                                        }
+
                                         gEditPoint = null;
                                         resyncTime();
                                         redrawAll();
@@ -457,6 +479,12 @@ $(document).ready(function (){
     $("#triggerName").change(function() {
         viewTrigger($('#triggerName option:selected').val());
     });
+
+    $("#triggerEnabled").change(function() {
+       // enable or disable trigger 
+       trigger = getTriggerData();
+       trigger.enabled = $("#triggerEnabled")[0].checked;
+    });
     
     // And go show stuff
     redrawAll();
@@ -528,7 +556,9 @@ function viewTrigger(triggerName) {
     if (trigger == null) {
         return;
     }
-    
+ 
+    $('#triggerEnabled')[0].checked = trigger.enabled; 
+
     var nPoints = trigger.points.length;
     var internallyFormattedPoints = []
     time = 0;
@@ -606,6 +636,7 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
     this.pointColor = "grey";
     this.flamingPointColor = "orange";
     this.selectedColor = "red";
+    this.anyColor = "green"
     this.mode = Mode.NORMAL;
     this.movementDelta = 0.1; // XXX need to get this from config data!! Also want to be able to set the global envelope
     this.envelopeColor = "AliceBlue";
@@ -704,7 +735,7 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
                     self.setDirty();
                 }
                 self.preSelectedPoint = null;
-            }, 2000);
+            }, 1000);
         }
     }
     
@@ -735,6 +766,11 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
             } else {
                 $("#linger").hide();
             }
+
+            $("#anyX")[0].checked = (hitPoint.point.x == "any");
+            $("#anyY")[0].checked = (hitPoint.point.y == "any");
+            $("#anyZ")[0].checked = (hitPoint.point.z == "any");
+
             $("#editPoint").dialog("open");
             
             // edit point - type, variables, flaming, etc
@@ -853,23 +889,31 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
         if (nPoints == 0) {
             return;
         }
+
+        var standardStroke = 'rgba(100, 100, 255, 0.2)';
+        var filledStroke = 'rgba(200, 200, 2000, 0.2)';
+        var standardWidth = this.movementDelta*this.scaleFactor*2;
+        var filledWidth   = 100;
         
 
         // draw envelope first...
         var firstPoint = this.points[0];
         
         drawingCtx.lineWidth = this.movementDelta*this.scaleFactor*2; // XXX and then something else?
-        
-        var firstPoint = this.points[0];
-        drawingCtx.strokeStyle = 'rgba(100, 100, 255, 0.2)';
+
+        drawingCtx.strokeStyle = standardStroke;
         drawingCtx.beginPath();
+
+
         drawingCtx.moveTo(firstPoint.t*gTimescale + offset.x, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
         if (firstPoint.point.type == "linger" && firstPoint.point.lingerTime > 0){
             drawingCtx.lineTo(firstPoint.t*gTimescale + offset.x + firstPoint.point.lingerTime*gTimescale, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
         }        
+        
         for (var i=1; i<nPoints; i++) {
             var point = this.points[i];
             drawingCtx.lineTo(point.t*gTimescale + offset.x, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
+
             if (point.point.type == "linger" && point.point.lingerTime > 0){
                 drawingCtx.lineTo(point.t*gTimescale + offset.x + point.point.lingerTime*gTimescale, (point.point[this.coordinate] + offset.y)*this.scaleFactor);
             }
@@ -893,7 +937,7 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
         // draw lines next
         //var firstPoint = this.points[0];
         drawingCtx.lineWidth = this.strokeWidth;
-        drawingCtx.strokeStyle = this.color;
+        drawingCtx.strokeStyle = this.pointColor;
         drawingCtx.beginPath();
         drawingCtx.moveTo(firstPoint.t*gTimescale + offset.x, (firstPoint.point[this.coordinate] + offset.y)*this.scaleFactor);
         if (firstPoint.point.type == "linger" && firstPoint.point.lingerTime > 0){
@@ -912,6 +956,20 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
         // draw points on top of lines
         for (var i=0; i<nPoints; i++) {
             var point = this.points[i];
+            var xAxisPos = point.point[this.coordinate];
+            if (xAxisPos == "any") {
+                xAxisPos = 0.5;
+                drawingCtx.strokeStyle = this.anyColor;
+            } else {
+                xAxisPos = point.point[this.coordinate];
+                drawingCtx.strokeStyle = this.pointColor;
+            }
+
+            if (point == this.selectedPoint) {
+                drawingCtx.strokeStyle = this.selectedColor;
+            } else if (point.point.flameEffect != null) { 
+                drawingCtx.strokeStyle = this.flamingPointColor; 
+            }
             drawingCtx.beginPath();
             drawingCtx.moveTo(point.t*gTimescale - this.pointSize/2 + offset.x, 
                               (point.point[this.coordinate] + offset.y)*this.scaleFactor - this.pointSize/2);
@@ -922,15 +980,6 @@ function TriggerLineSet(parentCanvas, points, coordinate, offset) {
             drawingCtx.lineTo(point.t*gTimescale - this.pointSize/2 + offset.x, 
                               (point.point[this.coordinate] + offset.y)*this.scaleFactor + this.pointSize/2);
             drawingCtx.closePath();
-            if (point == this.selectedPoint) {
-                drawingCtx.strokeStyle = this.selectedColor;
-            } else {
-                if (point.point.flameEffect != null) { 
-                    drawingCtx.strokeStyle = this.flamingPointColor;
-                } else {
-                    drawingCtx.strokeStyle = this.pointColor;
-                }
-            }
             drawingCtx.stroke()
         }
     }
